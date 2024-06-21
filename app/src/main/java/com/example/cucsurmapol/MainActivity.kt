@@ -33,11 +33,6 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        val mapWebView: WebView = findViewById(R.id.mapWebView)
-        val webSettings: WebSettings = mapWebView.settings
-        webSettings.javaScriptEnabled = true
-        WebView.setWebContentsDebuggingEnabled(true)
-        mapWebView.addJavascriptInterface(WebAppInterface(this),"Android")
-        mapWebView.loadUrl("file:///android_asset/map.html")
+
     }
 }

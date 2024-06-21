@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>OpenLayers Map</title>
     <link rel="stylesheet" href="ol/ol.css" type="text/css">
@@ -11,13 +12,16 @@
             margin: 0;
             padding: 0;
         }
-        html, body {
+
+        html,
+        body {
             height: 100%;
             margin: 0;
             padding: 0;
         }
     </style>
 </head>
+
 <body>
     <div id="map"></div>
     <script>
@@ -44,37 +48,82 @@
             source: vectorSource
         });
         map.addLayer(vectorLayer);
+
+        //SHAPES GO HERE
         
-        var iconFeature = new ol.Feature({
-            geometry: new ol.geom.Point(ol.proj.fromLonLat([-104.358436, 19.774623])),
-            name: 'My Building'
+        var squareCoords = [
+            [
+                ol.proj.fromLonLat([-104.359076, 19.774803]),  // Top left
+                ol.proj.fromLonLat([-104.358456, 19.774793]),  // Top right
+                ol.proj.fromLonLat([-104.358456, 19.774669]),  // Bottom right
+                ol.proj.fromLonLat([-104.359076, 19.774683])  // Close the square
+            ]
+        ];
+
+        var squareFeature = new ol.Feature({
+            geometry: new ol.geom.Polygon(squareCoords),
+            name: 'Edificio T'
         });
 
-        var iconStyle = new ol.style.Style({
-            image: new ol.style.Icon({
-                anchor: [0.5, 1],
-                src: 'images/udg.png',
-                scale: 0.1
+        var squareStyle = new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: 'blue',
+                width: 2
+            }),
+            fill: new ol.style.Fill({
+                color: 'rgba(0, 0, 255, 0.1)'
             })
         });
 
-        iconFeature.setStyle(iconStyle);
-        vectorSource.addFeature(iconFeature);
+        squareFeature.setStyle(squareStyle);
+        // var iconFeature = new ol.Feature({
+        //     geometry: new ol.geom.Point(ol.proj.fromLonLat([-104.358436, 19.774623])),
+        //     name: 'My Building'
+        // });
 
-        var selectInteraction = new ol.interaction.Select();
-        map.addInteraction(selectInteraction);
+        // var iconStyle = new ol.style.Style({
+        //     image: new ol.style.Icon({
+        //         anchor: [0.5, 1],
+        //         src: 'images/udg.png',
+        //         scale: 0.1
+        //     })
+        // });
+        function squareStyleFunction(feature) {
+            return [squareStyle];
+        }
+        squareFeature.setStyle(squareStyleFunction);
+        vectorSource.addFeature(squareFeature);
 
-        selectInteraction.on('select', function(event) {
-            var selectedFeatures = event.selected;
-            if (selectedFeatures.length > 0) {
-                var feature = selectedFeatures[0];
-                var info = 'Building clicked: ' + feature.get('name');
-                alert(info);
-                if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
-                    Android.sendBuildingInfo(info);
+        // var selectInteraction = new ol.interaction.Select({
+        //     style: squareStyleFunction
+        // });
+        // map.addInteraction(selectInteraction);
+
+        // selectInteraction.on('select', function(event) {
+        //     var selectedFeatures = event.selected;
+        //     if (selectedFeatures.length > 0) {
+        //         var feature = selectedFeatures[0];
+        //         var info = 'Building clicked: ' + feature.get('name');
+        //         alert(info);
+        //         if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
+        //             Android.sendBuildingInfo(info);
+        //         }
+        //     }
+        // });
+
+        map.on('click', function (event) {
+            map.forEachFeatureAtPixel(event.pixel, function (feature) {
+                if (feature === squareFeature) {
+                    var info = 'Event click: ' + feature.get('name');
+                    alert(info);
+                    //send back to app
+                    if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
+                        Android.sendBuildingInfo(info);
+                    }
                 }
-            }
+            });
         });
     </script>
 </body>
+
 </html>

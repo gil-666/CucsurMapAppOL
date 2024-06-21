@@ -8,6 +8,6 @@ class WebAppInterface(private val context: Context) {
     @JavascriptInterface
     fun sendBuildingInfo(info: String) {
         // Handle the received building info here
-        Toast.makeText(context, "Building info: $info", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "$info", Toast.LENGTH_SHORT).show()
     }
 }
