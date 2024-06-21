@@ -50,32 +50,60 @@
         map.addLayer(vectorLayer);
 
         //SHAPES GO HERE
+
+        function addEdificio(lon, lat, nombre, image) {
+            var edificio = new ol.Feature({
+                geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+                name: nombre
+            });
+
+            var edificioStyle = new ol.style.Style({
+                image: new ol.style.Icon({
+                    anchor: [0.5, 1],
+                    src: 'data:image/png;base64,' + image
+                })
+            });
+
+            edificio.setStyle(edificioStyle);
+            vectorSource.addFeature(edificio);
+        }
+
+        function addEdificiosFromAndroid() {
+            var edificios = JSON.parse(Android.getEdificios());
+            edificios.forEach(function(edificio) {
+                addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            addEdificiosFromAndroid();
+        });
         
-        var squareCoords = [
-            [
-                ol.proj.fromLonLat([-104.359076, 19.774803]),  // Top left
-                ol.proj.fromLonLat([-104.358456, 19.774793]),  // Top right
-                ol.proj.fromLonLat([-104.358456, 19.774669]),  // Bottom right
-                ol.proj.fromLonLat([-104.359076, 19.774683])  // Close the square
-            ]
-        ];
+        // var squareCoords = [
+        //     [
+        //         ol.proj.fromLonLat([-104.359076, 19.774803]),  // Top left
+        //         ol.proj.fromLonLat([-104.358456, 19.774793]),  // Top right
+        //         ol.proj.fromLonLat([-104.358456, 19.774669]),  // Bottom right
+        //         ol.proj.fromLonLat([-104.359076, 19.774683])  // Close the square
+        //     ]
+        // ];
 
-        var squareFeature = new ol.Feature({
-            geometry: new ol.geom.Polygon(squareCoords),
-            name: 'Edificio T'
-        });
+        // var squareFeature = new ol.Feature({
+        //     geometry: new ol.geom.Polygon(squareCoords),
+        //     name: 'Edificio T'
+        // });
 
-        var squareStyle = new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'blue',
-                width: 2
-            }),
-            fill: new ol.style.Fill({
-                color: 'rgba(0, 0, 255, 0.1)'
-            })
-        });
+        // var squareStyle = new ol.style.Style({
+        //     stroke: new ol.style.Stroke({
+        //         color: 'blue',
+        //         width: 2
+        //     }),
+        //     fill: new ol.style.Fill({
+        //         color: 'rgba(0, 0, 255, 0.1)'
+        //     })
+        // });
 
-        squareFeature.setStyle(squareStyle);
+        // squareFeature.setStyle(squareStyle);
         // var iconFeature = new ol.Feature({
         //     geometry: new ol.geom.Point(ol.proj.fromLonLat([-104.358436, 19.774623])),
         //     name: 'My Building'
