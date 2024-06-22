@@ -51,16 +51,19 @@
 
         //SHAPES GO HERE
 
-        function addEdificio(lon, lat, nombre, image) {
+        function addEdificio(lon, lat, nombre, image, id, pisos) {
             var edificio = new ol.Feature({
-                geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
-                name: nombre
+                geometry: new ol.geom.Point(ol.proj.fromLonLat([lat, lon])),
+                name: nombre,
+                pisos: pisos,
+                id: id
             });
 
             var edificioStyle = new ol.style.Style({
                 image: new ol.style.Icon({
                     anchor: [0.5, 1],
-                    src: 'data:image/png;base64,' + image
+                    src: 'data:image/png;base64,' + image,
+                    scale: 1
                 })
             });
 
@@ -70,88 +73,117 @@
 
         function addEdificiosFromAndroid() {
             var edificios = JSON.parse(Android.getEdificios());
-            edificios.forEach(function(edificio) {
-                addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image);
+            edificios.forEach(function (edificio) {
+                addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image, edificio.id, edificio.pisos);
             });
         }
 
         document.addEventListener('DOMContentLoaded', (event) => {
             addEdificiosFromAndroid();
         });
-        
-        // var squareCoords = [
-        //     [
-        //         ol.proj.fromLonLat([-104.359076, 19.774803]),  // Top left
-        //         ol.proj.fromLonLat([-104.358456, 19.774793]),  // Top right
-        //         ol.proj.fromLonLat([-104.358456, 19.774669]),  // Bottom right
-        //         ol.proj.fromLonLat([-104.359076, 19.774683])  // Close the square
-        //     ]
-        // ];
 
-        // var squareFeature = new ol.Feature({
-        //     geometry: new ol.geom.Polygon(squareCoords),
-        //     name: 'Edificio T'
-        // });
-
-        // var squareStyle = new ol.style.Style({
-        //     stroke: new ol.style.Stroke({
-        //         color: 'blue',
-        //         width: 2
-        //     }),
-        //     fill: new ol.style.Fill({
-        //         color: 'rgba(0, 0, 255, 0.1)'
-        //     })
-        // });
-
-        // squareFeature.setStyle(squareStyle);
-        // var iconFeature = new ol.Feature({
-        //     geometry: new ol.geom.Point(ol.proj.fromLonLat([-104.358436, 19.774623])),
-        //     name: 'My Building'
-        // });
-
-        // var iconStyle = new ol.style.Style({
-        //     image: new ol.style.Icon({
-        //         anchor: [0.5, 1],
-        //         src: 'images/udg.png',
-        //         scale: 0.1
-        //     })
-        // });
-        function squareStyleFunction(feature) {
-            return [squareStyle];
-        }
-        squareFeature.setStyle(squareStyleFunction);
-        vectorSource.addFeature(squareFeature);
-
-        // var selectInteraction = new ol.interaction.Select({
-        //     style: squareStyleFunction
-        // });
-        // map.addInteraction(selectInteraction);
-
-        // selectInteraction.on('select', function(event) {
-        //     var selectedFeatures = event.selected;
-        //     if (selectedFeatures.length > 0) {
-        //         var feature = selectedFeatures[0];
-        //         var info = 'Building clicked: ' + feature.get('name');
-        //         alert(info);
-        //         if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
-        //             Android.sendBuildingInfo(info);
-        //         }
-        //     }
-        // });
 
         map.on('click', function (event) {
-            map.forEachFeatureAtPixel(event.pixel, function (feature) {
-                if (feature === squareFeature) {
-                    var info = 'Event click: ' + feature.get('name');
-                    alert(info);
-                    //send back to app
-                    if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
-                        Android.sendBuildingInfo(info);
-                    }
+            var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
+                return feature;
+            });
+            if (feature && feature.get('id')) {
+                var info = 'Event click: ' + feature.get('id');
+                alert(info);
+                // Assuming 'id', 'nombre', 'pisos' are properties of the feature
+                var edificio = {
+                    id: feature.get('id'),
+                    nombre: feature.get('nombre'),
+                    pisos: feature.get('pisos'),
+                    geometry: feature.getGeometry()
+                };
+
+                // Show the popup with edificio information
+                showPopup(edificio);
+                if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
+                    Android.sendBuildingInfo(info);
+                }
+            } else {
+                // Hide the popup if clicked outside a feature or on a feature without 'id'
+                hidePopup();
+            };
+        });
+
+
+    </script>
+    <style>
+        .ol-popup {
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            top: 10px;
+            right: 10px;
+            max-width: 250px;
+        }
+
+        .ol-popup-closer {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            cursor: pointer;
+        }
+    </style>
+    <div id="popup" class="ol-popup">
+        <script>
+            var popup = new ol.Overlay({
+                element: document.getElementById('popup'),
+                autoPan: true,
+                autoPanAnimation: {
+                    duration: 250
                 }
             });
-        });
-    </script>
+            map.addOverlay(popup);
+
+            // Function to show the popup with edificio information
+            function showPopup(edificio) {
+                var content = document.getElementById('popup-content');
+                document.getElementById('edificio-nombre').textContent = edificio.nombre;
+                document.getElementById('edificio-pisos').textContent = edificio.pisos;
+
+                // Handle the button click to view details
+                document.getElementById('view-details-btn').onclick = function () {
+                    // Handle navigation or any other action here
+                    alert('View Details clicked for ' + edificio.nombre);
+                    // Example: Navigate to another fragment or perform other action
+                };
+
+                popup.setPosition(edificio.geometry.getCoordinates());
+                content.style.display = 'block';
+            }
+
+            // Function to hide the popup
+            function hidePopup() {
+                document.getElementById('popup-content').style.display = 'none';
+            }
+
+            // Map click event to handle feature clicks
+            map.on('click', function (event) {
+
+
+
+            });
+
+            // Close popup handler
+            document.getElementById('popup-closer').onclick = function () {
+                hidePopup();
+                return false;
+            };
+        </script>
+        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+        <div id="popup-content">
+            <p><strong id="edificio-nombre"></strong></p>
+            <p>Pisos: <span id="edificio-pisos"></span></p>
+            <button id="view-details-btn">Ver más</button>
+        </div>
+    </div>
 </body>
 
 </html>

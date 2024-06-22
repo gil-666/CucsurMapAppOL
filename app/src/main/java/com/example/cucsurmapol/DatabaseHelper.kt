@@ -4,15 +4,18 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.security.MessageDigest
 import java.util.Base64
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_NAME = "building.db"
+        private const val DATABASE_NAME = "cucsur_data.db"
         private const val DATABASE_VERSION = 1
         private const val DATABASE_PATH = "/databases/"
     }
@@ -20,10 +23,10 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     private val dbPath: String = context.applicationInfo.dataDir + DATABASE_PATH + DATABASE_NAME
 
     init {
-        val dbFile = File(dbPath)
-        if (!dbFile.exists()) {
+//        val dbFile = File(dbPath)
+//        if (!dbFile.exists() && !compareDatabaseHashes(context)) {
             copyDatabase(context)
-        }
+//        }
     }
 
     private fun copyDatabase(context: Context) {
@@ -73,5 +76,39 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         cursor.close()
         db.close()
         return edificios
+    }
+
+    //COMPARE DATABASE HASH
+
+    private fun compareDatabaseHashes(context: Context): Boolean {
+        val assetDbHash = getDatabaseHash(context.assets.open(DATABASE_NAME))
+        val existingDbHash = getDatabaseHash(FileInputStream(dbPath))
+        return assetDbHash == existingDbHash
+    }
+
+    private fun getDatabaseHash(inputStream: InputStream): String? {
+        try {
+            val buffer = ByteArray(1024)
+            val digest = MessageDigest.getInstance("SHA-256")
+            var bytesRead: Int
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                digest.update(buffer, 0, bytesRead)
+            }
+            val hashBytes = digest.digest()
+            val stringBuilder = StringBuilder()
+            for (byte in hashBytes) {
+                stringBuilder.append(String.format("%02x", byte))
+            }
+            return stringBuilder.toString()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            try {
+                inputStream.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+        return null
     }
 }

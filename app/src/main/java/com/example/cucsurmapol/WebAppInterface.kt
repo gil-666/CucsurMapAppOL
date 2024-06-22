@@ -1,6 +1,7 @@
 package com.example.cucsurmapol
 
 import android.content.Context
+import android.util.Log
 import android.webkit.JavascriptInterface
 import android.widget.Toast
 import org.json.JSONArray
@@ -29,6 +30,7 @@ class WebAppInterface(private val context: Context) {
             jsonObject.put("image", edificio.image)
             jsonArray.put(jsonObject)
         }
+        Log.println(Log.INFO,"bruh",jsonArray.toString())
         return jsonArray.toString()
     }
 }
