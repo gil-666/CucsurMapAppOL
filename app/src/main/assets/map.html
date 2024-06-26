@@ -48,15 +48,22 @@
             source: vectorSource
         });
         map.addLayer(vectorLayer);
-
+        var currentHiddenFeature = null;
+        var edificioVerticeLayer = null;
         //SHAPES GO HERE
 
-        function addEdificio(lon, lat, nombre, image, id, pisos) {
+        function addEdificio(lon, lat, nombre, image, id, pisos, v1, v2, v3, v4, tipo) {
             var edificio = new ol.Feature({
                 geometry: new ol.geom.Point(ol.proj.fromLonLat([lat, lon])),
-                name: nombre,
+                nombre: nombre,
                 pisos: pisos,
-                id: id
+                id: id,
+                v1: v1,
+                v2: v2,
+                v3: v3,
+                v4: v4,
+                tipo: tipo,
+                image: image
             });
 
             var edificioStyle = new ol.style.Style({
@@ -69,12 +76,13 @@
 
             edificio.setStyle(edificioStyle);
             vectorSource.addFeature(edificio);
+            addRoomsInPolygon(v1,v2,v3,v4, 5);
         }
 
         function addEdificiosFromAndroid() {
             var edificios = JSON.parse(Android.getEdificios());
             edificios.forEach(function (edificio) {
-                addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image, edificio.id, edificio.pisos);
+                addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image, edificio.id, edificio.pisos, edificio.v1, edificio.v2, edificio.v3, edificio.v4);
             });
         }
 
@@ -82,34 +90,161 @@
             addEdificiosFromAndroid();
         });
 
+        function showFeature(feature) {
+            var edificioStyle = new ol.style.Style({
+                image: new ol.style.Icon({
+                    anchor: [0.5, 1],
+                    src: 'data:image/png;base64,' + feature.get('image'),
+                    scale: 1
+                })
+            });
+            feature.setStyle(edificioStyle);
+        }
+
+        function hideFeature(feature) {
+            feature.setStyle(new ol.style.Style({
+                display: 'none'
+            }));
+        }
+
+        function addRoomsInPolygon(v1,v2,v3,v4, numRooms) {
+            var v11 = ol.proj.fromLonLat(v1.split(',').map(Number));
+            var v22 = ol.proj.fromLonLat(v2.split(',').map(Number));
+            var v33 = ol.proj.fromLonLat(v4.split(',').map(Number));
+            var v44 = ol.proj.fromLonLat(v3.split(',').map(Number));
+
+            var minX = Math.min(v11[0], v22[0], v33[0], v44[0]);
+            var minY = Math.min(v11[1], v22[1], v33[1], v44[1]);
+            var maxX = Math.max(v11[0], v22[0], v33[0], v44[0]);
+            var maxY = Math.max(v11[1], v22[1], v33[1], v44[1]);
+
+            var width = maxX - minX;
+            var roomWidth = width / numRooms;
+
+            var rooms = [];
+            for (var i = 0; i < numRooms; i++) {
+                var roomMinX = minX + i * roomWidth;
+                var roomMaxX = roomMinX + roomWidth;
+
+                var roomCoords = [
+                    [roomMinX, minY],
+                    [roomMaxX, minY],
+                    [roomMaxX, maxY],
+                    [roomMinX, maxY],
+                    [roomMinX, minY]
+                ];
+
+                var roomPolygon = new ol.geom.Polygon([roomCoords]);
+                var roomFeature = new ol.Feature(roomPolygon);
+
+                var roomStyle = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'green',
+                        width: 1
+                    }),
+                    fill: new ol.style.Fill({
+                        color: 'rgba(0, 255, 0, 0.1)'
+                    })
+                });
+                roomFeature.setStyle(roomStyle);
+
+                rooms.push(roomFeature);
+            }
+
+            var roomVectorSource = new ol.source.Vector({
+                features: rooms
+            });
+            var roomLayer = new ol.layer.Vector({
+                source: roomVectorSource
+            });
+
+            map.addLayer(roomLayer);
+
+            map.getView().on('change:resolution', function () {
+                var zoom = map.getView().getZoom();
+                roomLayer.setVisible(zoom >= 19);
+            });
+        }
+
+
+        function showBuildingBorders(edificio) {
+            //VERTICE COORDINATES
+            var vcoor = [
+                ol.proj.fromLonLat(edificio.v1),
+                ol.proj.fromLonLat(edificio.v2),
+                ol.proj.fromLonLat(edificio.v4),
+                ol.proj.fromLonLat(edificio.v3)
+            ]
+            console.log('Vertex coordinates:', vcoor);
+            var polygon = new ol.geom.Polygon([vcoor]);
+            var polygonFeature = new ol.Feature(polygon, {
+                type: edificio.tipo
+            });
+
+            var polygonStyle = new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'blue',
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 255, 0.1)'
+                })
+            });
+            polygonFeature.setStyle(polygonStyle);
+
+            var vectorSource = new ol.source.Vector({
+                features: [polygonFeature]
+            });
+            edificioVerticeLayer = new ol.layer.Vector({
+                source: vectorSource
+            });
+
+            // Add the vector layer to the map
+            map.addLayer(edificioVerticeLayer);
+
+        }
 
         map.on('click', function (event) {
             var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
                 return feature;
+            }, {
+                hitTolerance: 10
             });
+
             if (feature && feature.get('id')) {
-                var info = 'Event click: ' + feature.get('id');
-                alert(info);
-                // Assuming 'id', 'nombre', 'pisos' are properties of the feature
+
                 var edificio = {
                     id: feature.get('id'),
                     nombre: feature.get('nombre'),
                     pisos: feature.get('pisos'),
+                    v1: feature.get('v1').split(',').map(Number),
+                    v2: feature.get('v2').split(',').map(Number),
+                    v3: feature.get('v3').split(',').map(Number),
+                    v4: feature.get('v4').split(',').map(Number),
+                    tipo: feature.get('tipo'),
                     geometry: feature.getGeometry()
                 };
-
-                // Show the popup with edificio information
+                hideFeature(feature);
+                currentHiddenFeature = feature;
+                var info = feature.get('id');
+                alert(info);
                 showPopup(edificio);
+                showBuildingBorders(edificio);
                 if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
                     Android.sendBuildingInfo(info);
                 }
+
+
             } else {
-                // Hide the popup if clicked outside a feature or on a feature without 'id'
+
                 hidePopup();
+                if (currentHiddenFeature) {
+                    showFeature(currentHiddenFeature);
+                    currentHiddenFeature = null;
+                }
+                map.removeLayer(edificioVerticeLayer);
             };
         });
-
-
     </script>
     <style>
         .ol-popup {
@@ -120,8 +255,8 @@
             border-radius: 5px;
             border: 1px solid #ccc;
             top: 10px;
-            right: 10px;
             max-width: 250px;
+            /* Limit maximum width */
         }
 
         .ol-popup-closer {
@@ -129,6 +264,12 @@
             top: 5px;
             right: 5px;
             cursor: pointer;
+        }
+
+        #popup-content {
+            max-height: 250px;
+            /* Limit maximum height if necessary */
+            text-align: center;
         }
     </style>
     <div id="popup" class="ol-popup">
@@ -146,7 +287,6 @@
             function showPopup(edificio) {
                 var content = document.getElementById('popup-content');
                 document.getElementById('edificio-nombre').textContent = edificio.nombre;
-                document.getElementById('edificio-pisos').textContent = edificio.pisos;
 
                 // Handle the button click to view details
                 document.getElementById('view-details-btn').onclick = function () {
@@ -157,11 +297,13 @@
 
                 popup.setPosition(edificio.geometry.getCoordinates());
                 content.style.display = 'block';
+
             }
 
             // Function to hide the popup
             function hidePopup() {
                 document.getElementById('popup-content').style.display = 'none';
+                popup.setPosition(undefined);
             }
 
             // Map click event to handle feature clicks
@@ -171,16 +313,11 @@
 
             });
 
-            // Close popup handler
-            document.getElementById('popup-closer').onclick = function () {
-                hidePopup();
-                return false;
-            };
+
         </script>
         <a href="#" id="popup-closer" class="ol-popup-closer"></a>
         <div id="popup-content">
             <p><strong id="edificio-nombre"></strong></p>
-            <p>Pisos: <span id="edificio-pisos"></span></p>
             <button id="view-details-btn">Ver más</button>
         </div>
     </div>

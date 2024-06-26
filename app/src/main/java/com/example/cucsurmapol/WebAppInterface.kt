@@ -28,9 +28,13 @@ class WebAppInterface(private val context: Context) {
             jsonObject.put("lat", edificio.lat.toDouble())
             jsonObject.put("lon", edificio.lon.toDouble())
             jsonObject.put("image", edificio.image)
+            jsonObject.put("v1", edificio.v1)
+            jsonObject.put("v2", edificio.v2)
+            jsonObject.put("v3", edificio.v3)
+            jsonObject.put("v4", edificio.v4)
             jsonArray.put(jsonObject)
         }
-        Log.println(Log.INFO,"bruh",jsonArray.toString())
+        Log.println(Log.INFO,"bruh error: 67",jsonArray.toString())
         return jsonArray.toString()
     }
 }

@@ -54,7 +54,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         // No need to upgrade table as we are using an existing database
     }
 
-    data class Edificio(val id: Int, val nombre: String, val tipo: String, val pisos: String, val lat: String, val lon: String, val image: String)
+    data class Edificio(val id: Int, val nombre: String, val tipo: String, val pisos: String, val lat: String, val lon: String, val image: String, val v1: String,val v2: String,val v3: String, val v4:String)
 
     fun getAllEdificios(): List<Edificio> {
         val edificios = mutableListOf<Edificio>()
@@ -70,7 +70,13 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                 val lon = cursor.getString(cursor.getColumnIndexOrThrow("lon"))
                 val imageData = cursor.getBlob(cursor.getColumnIndexOrThrow("icon"))
                 val imageData64 =  Base64.getEncoder().encodeToString(imageData)
-                edificios.add(Edificio(id, nombre, tipo, pisos, lat, lon, imageData64))
+
+                //VERTICE DATA
+                val v1 = cursor.getString(cursor.getColumnIndexOrThrow("v1"))
+                val v2 = cursor.getString(cursor.getColumnIndexOrThrow("v2"))
+                val v3 = cursor.getString(cursor.getColumnIndexOrThrow("v3"))
+                val v4 = cursor.getString(cursor.getColumnIndexOrThrow("v4"))
+                edificios.add(Edificio(id, nombre, tipo, pisos, lat, lon, imageData64, v1, v2, v3, v4))
             } while (cursor.moveToNext())
         }
         cursor.close()
