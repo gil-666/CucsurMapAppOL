@@ -76,7 +76,7 @@
 
             edificio.setStyle(edificioStyle);
             vectorSource.addFeature(edificio);
-            addRoomsInPolygon(v1,v2,v3,v4, 5);
+            addRoomsInPolygon(edificio, 5);
         }
 
         function addEdificiosFromAndroid() {
@@ -107,11 +107,11 @@
             }));
         }
 
-        function addRoomsInPolygon(v1,v2,v3,v4, numRooms) {
-            var v11 = ol.proj.fromLonLat(v1.split(',').map(Number));
-            var v22 = ol.proj.fromLonLat(v2.split(',').map(Number));
-            var v33 = ol.proj.fromLonLat(v4.split(',').map(Number));
-            var v44 = ol.proj.fromLonLat(v3.split(',').map(Number));
+        function addRoomsInPolygon(edificio, numRooms) {
+            var v11 = ol.proj.fromLonLat(edificio.get('v1').split(',').map(Number));
+            var v22 = ol.proj.fromLonLat(edificio.get('v2').split(',').map(Number));
+            var v33 = ol.proj.fromLonLat(edificio.get('v4').split(',').map(Number));
+            var v44 = ol.proj.fromLonLat(edificio.get('v3').split(',').map(Number));
 
             var minX = Math.min(v11[0], v22[0], v33[0], v44[0]);
             var minY = Math.min(v11[1], v22[1], v33[1], v44[1]);
@@ -144,6 +144,17 @@
                     }),
                     fill: new ol.style.Fill({
                         color: 'rgba(0, 255, 0, 0.1)'
+                    }),
+                    text: new ol.style.Text({
+                        text: edificio.get('nombre').split('Edificio ')[1]+(i+1),
+                        font: '12px Calibri,sans-serif',
+                        fill: new ol.style.Fill({
+                            color: '#000'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: '#fff',
+                            width: 2
+                        })
                     })
                 });
                 roomFeature.setStyle(roomStyle);
@@ -159,6 +170,7 @@
             });
 
             map.addLayer(roomLayer);
+            roomLayer.setVisible(0);
 
             map.getView().on('change:resolution', function () {
                 var zoom = map.getView().getZoom();
