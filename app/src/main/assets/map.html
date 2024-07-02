@@ -26,9 +26,9 @@
     <div id="map"></div>
     <script>
         var bounds = ol.proj.transformExtent(
-            [-104.35944, 19.772676, -104.357180, 19.77638],  // [minx, miny, maxx, maxy] in EPSG:4326 (WGS 84)
-            'EPSG:4326',           // Source projection
-            'EPSG:3857'            // Destination projection (Web Mercator)
+            [-104.35944, 19.772676, -104.357180, 19.77638],  // [minx, miny, maxx, maxy] EPSG:4326 
+            'EPSG:4326',           // source  PROJECTIONS
+            'EPSG:3857'            // destination
         );
         var map = new ol.Map({
             target: 'map',
@@ -43,6 +43,9 @@
                 extent: bounds
             })
         });
+
+        //VALUES
+        var roomTriggerZoom = 19;
         var vectorSource = new ol.source.Vector();
         var vectorLayer = new ol.layer.Vector({
             source: vectorSource
@@ -50,8 +53,10 @@
         map.addLayer(vectorLayer);
         var currentHiddenFeature = null;
         var edificioVerticeLayer = null;
+        var roomLayer = null;
         //SHAPES GO HERE
 
+        var selectedFloor = 1 //SELECTED FLOOR VALUE
         function addEdificio(lon, lat, nombre, image, id, pisos, v1, v2, v3, v4, tipo) {
             var edificio = new ol.Feature({
                 geometry: new ol.geom.Point(ol.proj.fromLonLat([lat, lon])),
@@ -76,13 +81,16 @@
 
             edificio.setStyle(edificioStyle);
             vectorSource.addFeature(edificio);
-            addRoomsInPolygon(edificio, 5);
+            var salones = JSON.parse(Android.getEdificioSalones(edificio.get('id')));
+            console.log("salones: ", salones)
+
+            addRoomsInPolygon(edificio, salones, selectedFloor);
         }
 
         function addEdificiosFromAndroid() {
             var edificios = JSON.parse(Android.getEdificios());
             edificios.forEach(function (edificio) {
-                addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image, edificio.id, edificio.pisos, edificio.v1, edificio.v2, edificio.v3, edificio.v4);
+                addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image, edificio.id, edificio.pisos, edificio.v1, edificio.v2, edificio.v3, edificio.v4, edificio.tipo);
             });
         }
 
@@ -107,24 +115,30 @@
             }));
         }
 
-        function addRoomsInPolygon(edificio, numRooms) {
+        function addRoomsInPolygon(edificio, salones, selectedFloor) {
             var v11 = ol.proj.fromLonLat(edificio.get('v1').split(',').map(Number));
             var v22 = ol.proj.fromLonLat(edificio.get('v2').split(',').map(Number));
-            var v33 = ol.proj.fromLonLat(edificio.get('v4').split(',').map(Number));
-            var v44 = ol.proj.fromLonLat(edificio.get('v3').split(',').map(Number));
+            var v33 = ol.proj.fromLonLat(edificio.get('v3').split(',').map(Number));
+            var v44 = ol.proj.fromLonLat(edificio.get('v4').split(',').map(Number));
 
             var minX = Math.min(v11[0], v22[0], v33[0], v44[0]);
             var minY = Math.min(v11[1], v22[1], v33[1], v44[1]);
             var maxX = Math.max(v11[0], v22[0], v33[0], v44[0]);
             var maxY = Math.max(v11[1], v22[1], v33[1], v44[1]);
 
+            var viewableRooms = []
+            for (var i = 0; i < Object.keys(salones).length; i++) {
+                if (salones[i].piso == selectedFloor) {
+                    viewableRooms.push(salones[i])
+                }
+            }
             var width = maxX - minX;
-            var roomWidth = width / numRooms;
+            var roomWidth = width / Object.keys(viewableRooms).length;
 
             var rooms = [];
-            for (var i = 0; i < numRooms; i++) {
-                var roomMinX = minX + i * roomWidth;
-                var roomMaxX = roomMinX + roomWidth;
+            for (var i = 0; i < Object.keys(viewableRooms).length; i++) {
+                var roomMinX = minX - i * roomWidth + width;
+                var roomMaxX = roomMinX - roomWidth;
 
                 var roomCoords = [
                     [roomMinX, minY],
@@ -135,7 +149,34 @@
                 ];
 
                 var roomPolygon = new ol.geom.Polygon([roomCoords]);
-                var roomFeature = new ol.Feature(roomPolygon);
+                var roomFeature = new ol.Feature({
+                    geometry: roomPolygon,
+                    salonid: viewableRooms[i].salonid,
+                    nombre: viewableRooms[i].nombre,
+                    tipo: viewableRooms[i].tipo,
+                    piso: viewableRooms[i].piso
+                });
+
+                var officeStyle = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'magenta',
+                        width: 1
+                    }),
+                    fill: new ol.style.Fill({
+                        color: 'rgba(255, 0, 255, 0.1)'
+                    }),
+                    text: new ol.style.Text({
+                        text: roomFeature.get('nombre'),
+                        font: '16px Calibri,sans-serif',
+                        fill: new ol.style.Fill({
+                            color: '#000'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: '#fff',
+                            width: 2
+                        })
+                    })
+                });
 
                 var roomStyle = new ol.style.Style({
                     stroke: new ol.style.Stroke({
@@ -146,8 +187,8 @@
                         color: 'rgba(0, 255, 0, 0.1)'
                     }),
                     text: new ol.style.Text({
-                        text: edificio.get('nombre').split('Edificio ')[1]+(i+1),
-                        font: '12px Calibri,sans-serif',
+                        text: roomFeature.get('nombre'),
+                        font: '16px Calibri,sans-serif',
                         fill: new ol.style.Fill({
                             color: '#000'
                         }),
@@ -157,25 +198,40 @@
                         })
                     })
                 });
-                roomFeature.setStyle(roomStyle);
+                if (roomFeature.get('tipo') == "salon") {
+                    roomFeature.setStyle(roomStyle);
+                } else if (roomFeature.get('tipo') == "oficina") {
+                    roomFeature.setStyle(officeStyle);
+                }
+
 
                 rooms.push(roomFeature);
             }
 
+            console.log("pushed viewable", viewableRooms)
             var roomVectorSource = new ol.source.Vector({
                 features: rooms
             });
-            var roomLayer = new ol.layer.Vector({
+            roomLayer = new ol.layer.Vector({
                 source: roomVectorSource
             });
 
             map.addLayer(roomLayer);
             roomLayer.setVisible(0);
 
+
+
             map.getView().on('change:resolution', function () {
                 var zoom = map.getView().getZoom();
-                roomLayer.setVisible(zoom >= 19);
+                roomLayer.setVisible(zoom >= roomTriggerZoom);
+                if (zoom < roomTriggerZoom) {
+                    vectorLayer.setVisible(1);
+                } else {
+                    vectorLayer.setVisible(0);
+                }
+
             });
+
         }
 
 
@@ -184,13 +240,13 @@
             var vcoor = [
                 ol.proj.fromLonLat(edificio.v1),
                 ol.proj.fromLonLat(edificio.v2),
-                ol.proj.fromLonLat(edificio.v4),
-                ol.proj.fromLonLat(edificio.v3)
+                ol.proj.fromLonLat(edificio.v3),
+                ol.proj.fromLonLat(edificio.v4)
             ]
             console.log('Vertex coordinates:', vcoor);
             var polygon = new ol.geom.Polygon([vcoor]);
             var polygonFeature = new ol.Feature(polygon, {
-                type: edificio.tipo
+                tipo: edificio.tipo
             });
 
             var polygonStyle = new ol.style.Style({
@@ -216,12 +272,35 @@
 
         }
 
+        function featureDetailsToString(feature) {
+            var details = "feature not clicked"
+            if (feature) {
+                var properties = feature.getProperties();
+                details = `Feature Details:\n`;
+
+                for (var key in properties) {
+                    if (properties.hasOwnProperty(key)) {
+                        details += `${key}: ${properties[key]}\n`;
+                    }
+                }
+            }
+
+
+            return details;
+        }
+
         map.on('click', function (event) {
             var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
                 return feature;
             }, {
                 hitTolerance: 10
             });
+
+            console.log(featureDetailsToString(feature))
+            if(feature && currentHiddenFeature != null){
+                showFeature(currentHiddenFeature);
+                map.removeLayer(edificioVerticeLayer);
+            }
 
             if (feature && feature.get('id')) {
 
@@ -237,17 +316,28 @@
                     geometry: feature.getGeometry()
                 };
                 hideFeature(feature);
+                
                 currentHiddenFeature = feature;
                 var info = feature.get('id');
                 alert(info);
-                showPopup(edificio);
+                showPopup(feature);
                 showBuildingBorders(edificio);
                 if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
                     Android.sendBuildingInfo(info);
                 }
 
 
-            } else {
+            }
+            else if (feature && feature.get('salonid')) {
+                var salon = {
+                    id: feature.get('salonid')
+                }
+                var info = feature.get('salonid');
+                if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
+                    Android.sendBuildingInfo(info);
+                }
+            }
+            else {
 
                 hidePopup();
                 if (currentHiddenFeature) {
@@ -257,6 +347,30 @@
                 map.removeLayer(edificioVerticeLayer);
             };
         });
+
+        function getAllFeaturesToArray() {
+            var featuresSource = vectorSource.getFeatures();
+            var features = [];
+            featuresSource.forEach(function (sourceFeature) {
+                features.push(sourceFeature);
+            });
+            return features;
+        };
+
+        function hideAllFeatures() {
+            var featuresSource = vectorSource.getFeatures();
+            featuresSource.forEach(function (sourceFeature) {
+                hideFeature(sourceFeature);
+            });
+        }
+
+        function showAllFeatures() {
+            var featuresSource = vectorSource.getFeatures();
+            featuresSource.forEach(function (sourceFeature) {
+                showFeature(sourceFeature);
+            });
+        }
+
     </script>
     <style>
         .ol-popup {
@@ -294,20 +408,48 @@
                 }
             });
             map.addOverlay(popup);
-
-            // Function to show the popup with edificio information
-            function showPopup(edificio) {
+            function showPopup(feature) {
                 var content = document.getElementById('popup-content');
-                document.getElementById('edificio-nombre').textContent = edificio.nombre;
-
-                // Handle the button click to view details
+                document.getElementById('edificio-nombre').textContent = feature.get('nombre');
                 document.getElementById('view-details-btn').onclick = function () {
-                    // Handle navigation or any other action here
-                    alert('View Details clicked for ' + edificio.nombre);
-                    // Example: Navigate to another fragment or perform other action
+                    alert('View Details clicked for ' + feature.get('nombre'));
+                    hidePopup();
+                    map.removeLayer(edificioVerticeLayer);
+
+                    var ext = currentHiddenFeature.getGeometry().getExtent();
+                    var center = ol.extent.getCenter(ext);
+
+                    var view = map.getView();
+                    view.animate({
+                        projection: 'EPSG:3857',//or any projection you are using
+                        center: [center[0], center[1]],//zoom to the center of your feature
+                        zoom: 19.5, 
+                        duration: 1000,
+                        extent: bounds
+                    });
+                    roomLayer.setVisible(1); //force rooms to show on zoom
+                    vectorLayer.setVisible(0);
+
+
+                    //force hide edificio icon
+                    map.getView().on('change:resolution', function () {
+                        var zoom = map.getView().getZoom();
+                        roomLayer.setVisible(zoom >= roomTriggerZoom);
+                        if (zoom < roomTriggerZoom) {
+                            vectorLayer.setVisible(1);
+                        } else {
+                            vectorLayer.setVisible(0);
+                        }
+
+                    });
+
+                    if (currentHiddenFeature) {
+                        showFeature(currentHiddenFeature);
+                        currentHiddenFeature = null;
+                    }
                 };
 
-                popup.setPosition(edificio.geometry.getCoordinates());
+                popup.setPosition(feature.get('geometry').getCoordinates());
                 content.style.display = 'block';
 
             }
@@ -319,11 +461,7 @@
             }
 
             // Map click event to handle feature clicks
-            map.on('click', function (event) {
 
-
-
-            });
 
 
         </script>
