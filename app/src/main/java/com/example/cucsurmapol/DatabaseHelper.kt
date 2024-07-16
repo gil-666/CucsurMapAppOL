@@ -101,6 +101,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         cursor.close()
         db.close()
         return salones
+
     }
 
     fun getSalonesAtEdificio(edificio: String): List<Salon>{
@@ -120,6 +121,23 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         cursor.close()
         db.close()
         return salones
+    }
+
+    fun getSalonSearches(search:String):List<Salon>{
+        val results = mutableListOf<Salon>()
+        val db: SQLiteDatabase = this.readableDatabase;
+        val cursor = db.rawQuery("SELECT * FROM salon WHERE nombre LIKE '%$search%'", null)
+        if (cursor.moveToFirst()){
+            do {
+                val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
+                val nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                val tipo = cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
+                val piso = cursor.getString(cursor.getColumnIndexOrThrow("piso"))
+                val edificio_edificioid = cursor.getInt(cursor.getColumnIndexOrThrow("edificio_edificioid"))
+                results.add(Salon(salonid, nombre, tipo, piso, edificio_edificioid))
+            }while (cursor.moveToNext())
+        }
+        return results
     }
 
     //COMPARE DATABASE HASH

@@ -4,7 +4,7 @@
 <head>
     <title>OpenLayers Map</title>
     <link rel="stylesheet" href="ol/ol.css" type="text/css">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="ol/dist/ol.js"></script>
     <style>
         #map {
@@ -27,6 +27,7 @@
         .wrapper {
             width: 100%;
             max-width: 80%;
+            max-height: 300px;
             align-content: center;
             align-self: center;
             align-items: center;
@@ -35,7 +36,7 @@
             top: 40px;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 1;
+            z-index: 2;
 
         }
 
@@ -52,7 +53,6 @@
             display: flex;
             flex-direction: row;
 
-
         }
 
         #searchQueryInput {
@@ -65,6 +65,7 @@
             padding: 0 3.5rem 0 1.5rem;
             font-size: 1rem;
             box-shadow: 0px 0px 10px black;
+
         }
 
         #searchQuerySubmit {
@@ -79,6 +80,61 @@
         #searchQuerySubmit:hover {
             cursor: pointer;
         }
+
+        .searchResult {
+            width: 70%;
+            height: 200px;
+            top: 145px;
+            position: absolute;
+            overflow: scroll;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            border: none;
+            border-radius: 1.625rem;
+            align-content: center;
+            align-self: center;
+            align-items: center;
+            display: none;
+        }
+
+        #resultBox {
+            display: none;
+        }
+
+        .searchListBox {
+            width: 100%;
+            height: auto;
+            top: 10px;
+            background: #ffffff;
+            border: 2px;
+            border-color: #929292;
+            padding: 0;
+            margin: 0;
+            align-content: center;
+            align-self: center;
+            align-items: center;
+        }
+
+        .result-li-item {
+            text-align: center;
+            padding: 10px;
+            border: 1px;
+            border-color: rgb(189, 189, 189);
+            border-style: solid;
+            color: blue;
+            font-weight: bold;
+            list-style: none;
+
+        }
+
+        #resultListinMap {
+            padding-top: 10px;
+            position: absolute;
+            overflow-y: scroll;
+            max-height: 100%;
+        }
+
 
         .ol-zoom {
             position: absolute;
@@ -105,7 +161,7 @@
 <body>
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
 
-    <div class="wrapper">
+    <div class="wrapper"><!--search bar-->
         <div class="searchBar">
             <input id="searchQueryInput" type="text" name="searchQueryInput" placeholder="Buscar un edificio o salón..."
                 value="" />
@@ -116,6 +172,11 @@
                 </svg>
             </button>
         </div>
+    </div>
+    <div class="searchResult" id="resultBox">
+        <ul class="searchListBox" id="resultListinMap">
+            <!-- results here -->
+        </ul>
     </div>
     <div id="map">
 
@@ -155,12 +216,16 @@
         var currentHiddenFeature = null;
         var edificioVerticeLayer = null;
 
+        var currentClickedFeature = [];
+
         var roomVectorSource = null;
         var roomLayer = null;
         var rooms = [];
+        var edificios = [];
         //SHAPES GO HERE
 
         var selectedFloor = 1 //SELECTED FLOOR VALUE
+
         function addEdificio(lon, lat, nombre, image, id, pisos, v1, v2, v3, v4, tipo) {
             var salones = JSON.parse(Android.getEdificioSalones(id));
             var edificio = new ol.Feature({
@@ -176,6 +241,8 @@
                 image: image,
                 salones: salones
             });
+
+            edificios.push(edificio);
 
             var edificioStyle = new ol.style.Style({
                 image: new ol.style.Icon({
@@ -200,9 +267,146 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', (event) => {
+        document.addEventListener('DOMContentLoaded', (event) => { //waits for map content then loads data
             addEdificiosFromAndroid();
+
         });
+
+        document.addEventListener("DOMContentLoaded", function () { //Listens for typing in search bar
+            const searchBar = document.getElementById("searchQueryInput");
+            const resultBox = document.getElementById("resultBox");
+            searchBar.addEventListener("input", function (event) {
+                const searchTerm = event.target.value;
+                console.log("User typed: " + searchTerm);
+                resultBox.style.display = 'block';
+                handleSearch(searchTerm);
+            });
+        });
+
+        function handleSearch(searchTerm) {
+            const searchBar = document.getElementById("searchBar");
+            const resultBox = document.getElementById("resultBox");
+            const resultList = document.getElementById("resultListinMap");
+            resultBox.style.display = 'block';
+            var results = JSON.parse(Android.getSalonSearch(searchTerm));
+            console.log("Search results: ", results);
+            // document.getElementById("result-text").textContent = results[0].nombre
+            resultList.innerHTML = '';
+            results.forEach(function (result) {
+                var item = document.createElement("li");
+                item.className = 'result-li-item';
+                item.textContent = result.nombre;
+                resultList.appendChild(item);
+
+                item.addEventListener("click", function (event) { //attaches a click event for every item
+                    console.log("click! ", result.nombre);
+                    resultBox.style.display = 'none';
+                    travelToSalon(result);
+
+                });
+            });
+        };
+
+        function travelToSalon(salon) {
+            var view = map.getView();
+            var highlighted = false;
+
+            rooms.forEach(function (room) {
+                if (!highlighted && room.get('salonid') == salon.salonid) {
+                    zoomToRoom(room, 20, 1500);
+                    highlightSalon(room);
+
+
+
+                    highlighted = true;
+                } else {
+                    if (salon.piso != selectedFloor) {//if clicked room does not belong in the current displayed floor
+
+                        for (var i = rooms.length - 1; i >= 0; i--) {
+                            if (rooms[i].get('piso') == selectedFloor && rooms[i].get('edificioid') == salon.edificio_edificioid) {
+                                console.log("removed room: ", rooms[i].get('nombre'));
+                                rooms.splice(i, 1); // Removing index i
+
+                            }
+                        }
+                        map.removeLayer(roomLayer);
+
+                        selectedFloor = salon.piso; //set selected floor to the current searched room
+                        console.log("selected floor: ", selectedFloor);
+                        var edificioSearched = getEdificioFeaturefromID(salon.salonid);
+                        console.log("edificio object:", edificioSearched);
+                        console.log("edificio searched name:", edificioSearched.get('nombre'))
+                        addRoomsInPolygon(edificioSearched, edificioSearched.get('salones'), selectedFloor);//TODO: make function that returns the edificio object for the salon that it belongs to
+
+                        if (!highlighted) {
+                            travelToSalon(salon);
+                            highlighted = true; // Set flag to true to avoid recursion
+                        }
+
+                    }
+
+                }
+            });
+        }
+
+        function highlightSalon(room) {
+            var currentHiddenRoomStyle = room.getStyle();
+            console.log("original style: ", JSON.stringify(currentHiddenRoomStyle, null, 2));
+
+            var roomHighlight = new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'blue',
+                    width: 1
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 255, 0.1)'
+                }),
+                text: new ol.style.Text({
+                    text: room.get('nombre'),
+                    font: '16px Calibri,sans-serif',
+                    fill: new ol.style.Fill({
+                        color: '#000'
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#fff',
+                        width: 2
+                    })
+                })
+            });
+
+            room.setStyle(roomHighlight);
+            currentClickedFeature = [];
+            currentClickedFeature.push(room);
+
+            showPopup(room, "salon");
+
+            var onMapClick = function (event) {
+                var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
+                    return feature;
+                }, {
+                    hitTolerance: 10
+                });
+
+                // If no feature is clicked, revert the room style
+                if (!feature) {
+                    room.setStyle(currentHiddenRoomStyle);
+                    console.log("Reverting to original style", JSON.stringify(currentHiddenRoomStyle, null, 2));
+                    currentClickedFeature = [];
+                    // Remove this click listener after it's executed
+                    map.un('click', onMapClick);
+                }
+                else if (feature && currentClickedFeature != null) {
+                    if (currentClickedFeature.length > 0) {
+                        currentClickedFeature[0].setStyle(currentHiddenRoomStyle);
+                    }
+                    
+                    map.un('click', onMapClick);
+                }
+            };
+
+            // Ensure the click event listener is only added once
+            map.on('click', onMapClick);
+        }
 
         function showFeature(feature) {
             var edificioStyle = new ol.style.Style({
@@ -257,6 +461,7 @@
                 var roomPolygon = new ol.geom.Polygon([roomCoords]);
                 var roomFeature = new ol.Feature({
                     geometry: roomPolygon,
+                    edificio: edificio,
                     salonid: viewableRooms[i].salonid,
                     nombre: viewableRooms[i].nombre,
                     tipo: viewableRooms[i].tipo,
@@ -491,16 +696,17 @@
 
 
             }
-            else if (feature && feature.get('salonid')) {
+            else if (feature && feature.get('salonid')) {//if the feature clicked is a salon
                 var salon = {
                     id: feature.get('salonid')
                 }
                 var info = feature.get('salonid');
-                // showPopup(feature);
+                showPopup(feature, "salon");
                 if (typeof Android !== 'undefined' && Android.sendBuildingInfo) {
                     Android.sendBuildingInfo(info);
                 }
             } else if (feature && feature.get('tipo') == "uparrow") {
+                hidePopup();
                 for (var i = rooms.length - 1; i >= 0; i--) {
                     if (rooms[i].get('piso') == selectedFloor && rooms[i].get('edificioid') == feature.get('edificio').get('id')) {
                         console.log("removed room: ", rooms[i].get('nombre'));
@@ -518,6 +724,7 @@
                 addRoomsInPolygon(feature.get('edificio'), feature.get('edificio').get('salones'), selectedFloor);
                 roomLayer.setVisible(1);
             } else if (feature && feature.get('tipo') == "downarrow") {
+                hidePopup();
                 for (var i = rooms.length - 1; i >= 0; i--) {
                     if (rooms[i].get('piso') == selectedFloor && rooms[i].get('edificioid') == feature.get('edificio').get('id')) {
                         console.log("removed room: ", rooms[i].get('nombre'));
@@ -535,7 +742,7 @@
                 addRoomsInPolygon(feature.get('edificio'), feature.get('edificio').get('salones'), selectedFloor);
                 roomLayer.setVisible(1);
             }
-            else {
+            else{
 
                 hidePopup();
                 if (currentHiddenFeature) {
@@ -569,6 +776,39 @@
             });
         }
 
+        function zoomToRoom(room, zoomLevel, animDurationMs) {
+            var ext = room.getGeometry().getExtent();
+            console.log("requested zoom for room: ", room.get('nombre'));
+            var center = ol.extent.getCenter(ext);
+            var view = map.getView();
+            view.animate({
+                projection: 'EPSG:3857',
+                center: [center[0], center[1]],//zoom to the center of feature
+                zoom: zoomLevel,
+                duration: animDurationMs,
+                extent: bounds
+            });
+
+
+
+            roomLayer.setVisible(1); //force rooms to show on zoom
+            vectorLayer.setVisible(0);
+        }
+
+        function getEdificioFeaturefromID(salonid) {
+            var edificioFound = undefined;
+            edificios.forEach(function (edificio) {
+                var salonList = edificio.get('salones');
+                salonList.forEach(function (salon) {
+                    if (salonid == salon.salonid) {
+                        console.log("se encontro el salon en json: ", salon.salonid);
+                        edificioFound = edificio;
+                    }
+                })
+            });
+            return edificioFound;
+        }
+
     </script>
     <style>
         .ol-popup {
@@ -596,6 +836,7 @@
             text-align: center;
         }
     </style>
+
     <div id="popup" class="ol-popup">
         <script>
             var popup = new ol.Overlay({
@@ -606,17 +847,28 @@
                 }
             });
             map.addOverlay(popup);
-            function showPopup(feature) {
+            function showPopup(feature, tipo) {
                 var content = document.getElementById('popup-content');
+
+                var button = document.getElementById('view-details-btn');
                 document.getElementById('edificio-nombre').textContent = feature.get('nombre');
+                switch (tipo) {
+                    case "salon":
+                        button.textContent = "Ver más"
+                        break;
+                    default:
+                        button.textContent = "Ampliar"
+                        break;
+                }
+
                 document.getElementById('view-details-btn').onclick = function () {
                     alert('View Details clicked for ' + feature.get('nombre'));
                     hidePopup();
                     map.removeLayer(edificioVerticeLayer);
 
-                    var ext = currentHiddenFeature.getGeometry().getExtent();
-                    var center = ol.extent.getCenter(ext);
 
+                    var ext = feature.getGeometry().getExtent();
+                    var center = ol.extent.getCenter(ext);
                     var view = map.getView();
                     view.animate({
                         projection: 'EPSG:3857',//or any projection you are using
@@ -625,6 +877,11 @@
                         duration: 1000,
                         extent: bounds
                     });
+                    if(feature.get('salonid')){
+                        highlightSalon(feature);
+                    }
+                    
+
                     roomLayer.setVisible(1); //force rooms to show on zoom
                     vectorLayer.setVisible(0);
 
@@ -648,21 +905,28 @@
                         currentHiddenFeature = null;
                     }
                 };
+                switch (tipo) {
+                    case "salon":
+                        var ext = feature.getGeometry().getExtent();
+                        var center = ol.extent.getCenter(ext);
+                        popup.setPosition(center);
+                        break;
 
-                popup.setPosition(feature.get('geometry').getCoordinates());
+                    default:
+                        var featCoords = feature.get('geometry').getCoordinates();
+                        popup.setPosition(featCoords);
+                        break;
+                }
+
                 content.style.display = 'block';
+                console.log("popup coords:", featCoords);
 
             }
 
-            // Function to hide the popup
             function hidePopup() {
                 document.getElementById('popup-content').style.display = 'none';
                 popup.setPosition(undefined);
             }
-
-            // Map click event to handle feature clicks
-
-
 
         </script>
 
