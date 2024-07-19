@@ -1,19 +1,40 @@
 package com.example.cucsurmapol
 
+import android.app.appsearch.StorageInfo
 import android.content.Context
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.widget.Toast
+import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.navigation.NavController
+import com.example.cucsurmapol.ui.dashboard.DashboardFragment
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.logging.Logger
 
-class WebAppInterface(private val context: Context) {
+class WebAppInterface(private val context: Context,private val navController: NavController,private val sharedViewModel: SharedViewModel) {
 
     private val dbHelper = DatabaseHelper(context)
+    private val handler = Handler(Looper.getMainLooper())
+
     @JavascriptInterface
-    fun sendBuildingInfo(info: String) {
+    fun navToSalonInfo(info: String) {
         // Handle the received building info here
         Toast.makeText(context, "$info", Toast.LENGTH_SHORT).show()
+        Log.println(Log.INFO,"suck my balls recieved: ",info);
+        handler.post {
+            sharedViewModel.setInfo(info)
+            navController.navigate(R.id.action_homeFragment_to_dashboardFragment)
+        }
+    }
+
+    fun createToast(text: String){
+        Toast.makeText(context, "$text", Toast.LENGTH_SHORT).show()
     }
     @JavascriptInterface
     fun getEdificios(): String {
@@ -87,5 +108,15 @@ class WebAppInterface(private val context: Context) {
         }
         Log.println(Log.INFO,"salon data", jsonArray.toString())
         return jsonArray.toString()
+    }
+
+    @JavascriptInterface
+    fun getInfo(): String {
+        return sharedViewModel.info.value ?: ""
+    }
+
+    @JavascriptInterface
+    fun setInfo(info: String) {
+        sharedViewModel.setInfo(info)
     }
 }

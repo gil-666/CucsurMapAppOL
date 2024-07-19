@@ -10,6 +10,9 @@
         android:name="com.example.cucsurmapol.ui.home.HomeFragment"
         android:label="@string/title_home"
         tools:layout="@layout/fragment_home" />
+    <action
+        android:id="@+id/action_homeFragment_to_dashboardFragment"
+        app:destination="@id/navigation_dashboard" />
 
     <fragment
         android:id="@+id/navigation_dashboard"

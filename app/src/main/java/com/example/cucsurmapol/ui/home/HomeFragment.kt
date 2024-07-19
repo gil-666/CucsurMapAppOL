@@ -6,11 +6,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
+import com.example.cucsurmapol.SharedViewModel
 import com.example.cucsurmapol.WebAppInterface
 import com.example.cucsurmapol.databinding.FragmentHomeBinding
+
 
 class HomeFragment : Fragment() {
 
@@ -27,6 +30,7 @@ class HomeFragment : Fragment() {
     ): View {
         val homeViewModel =
                 ViewModelProvider(this).get(HomeViewModel::class.java)
+        (activity as AppCompatActivity?)!!.supportActionBar!!.hide()
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
@@ -35,7 +39,9 @@ class HomeFragment : Fragment() {
         val webSettings: WebSettings = mapWebView.settings
         webSettings.javaScriptEnabled = true
         WebView.setWebContentsDebuggingEnabled(true)
-        mapWebView.addJavascriptInterface(WebAppInterface(requireContext()), "Android")
+        val navController = findNavController()
+        val sharedViewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
+        mapWebView.addJavascriptInterface(WebAppInterface(requireContext(),navController,sharedViewModel), "Android")
         mapWebView.loadUrl("file:///android_asset/map.html")
 
 
