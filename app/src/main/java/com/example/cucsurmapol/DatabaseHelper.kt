@@ -55,7 +55,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
     data class Edificio(val id: Int, val nombre: String, val tipo: String, val pisos: String, val lat: String, val lon: String, val image: String, val v1: String,val v2: String,val v3: String, val v4:String)
-    data class Salon(val salonid: Int, val nombre: String, val tipo: String, val piso:String, val edificio_edificioid:Int)
+    data class Salon(val salonid: Int, val nombre: String, val descripcion:String, val tipo: String, val piso:String, val edificio_edificioid:Int)
     fun getAllEdificios(): List<Edificio> {
         val edificios = mutableListOf<Edificio>()
         val db: SQLiteDatabase = this.readableDatabase
@@ -92,10 +92,32 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             do {
                 val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
                 val nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                val descripcion = cursor.getString(cursor.getColumnIndexOrThrow("descripcion"))
                 val tipo = cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
                 val piso = cursor.getString(cursor.getColumnIndexOrThrow("piso"))
                 val edificio_edificioid = cursor.getInt(cursor.getColumnIndexOrThrow("edificio_edificioid"))
-                salones.add(Salon(salonid, nombre, tipo, piso, edificio_edificioid))
+                salones.add(Salon(salonid, nombre, descripcion, tipo, piso, edificio_edificioid))
+            }while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return salones
+
+    }
+
+    fun getSalon(salonid:String): List<Salon>{
+        val salones = mutableListOf<Salon>()
+        val db: SQLiteDatabase = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM salon WHERE salonid = $salonid", null)
+        if (cursor.moveToFirst()) {
+            do {
+                val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
+                val nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                val descripcion = cursor.getString(cursor.getColumnIndexOrThrow("descripcion"))
+                val tipo = cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
+                val piso = cursor.getString(cursor.getColumnIndexOrThrow("piso"))
+                val edificio_edificioid = cursor.getInt(cursor.getColumnIndexOrThrow("edificio_edificioid"))
+                salones.add(Salon(salonid, nombre, descripcion, tipo, piso, edificio_edificioid))
             }while (cursor.moveToNext())
         }
         cursor.close()
@@ -112,10 +134,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             do {
                 val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
                 val nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                val descripcion = cursor.getString(cursor.getColumnIndexOrThrow("descripcion"))
                 val tipo = cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
                 val piso = cursor.getString(cursor.getColumnIndexOrThrow("piso"))
                 val edificio_edificioid = cursor.getInt(cursor.getColumnIndexOrThrow("edificio_edificioid"))
-                salones.add(Salon(salonid, nombre, tipo, piso, edificio_edificioid))
+                salones.add(Salon(salonid, nombre, descripcion, tipo, piso, edificio_edificioid))
             }while (cursor.moveToNext())
         }
         cursor.close()
@@ -131,10 +154,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             do {
                 val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
                 val nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                val descripcion = cursor.getString(cursor.getColumnIndexOrThrow("descripcion"))
                 val tipo = cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
                 val piso = cursor.getString(cursor.getColumnIndexOrThrow("piso"))
                 val edificio_edificioid = cursor.getInt(cursor.getColumnIndexOrThrow("edificio_edificioid"))
-                results.add(Salon(salonid, nombre, tipo, piso, edificio_edificioid))
+                results.add(Salon(salonid, nombre, descripcion, tipo, piso, edificio_edificioid))
             }while (cursor.moveToNext())
         }
         return results

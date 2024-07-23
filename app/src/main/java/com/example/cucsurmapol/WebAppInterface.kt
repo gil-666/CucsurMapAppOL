@@ -67,6 +67,25 @@ class WebAppInterface(private val context: Context,private val navController: Na
             val jsonObject = JSONObject()
             jsonObject.put("salonid", salon.salonid)
             jsonObject.put("nombre", salon.nombre)
+            jsonObject.put("descripcion", salon.descripcion)
+            jsonObject.put("tipo", salon.tipo)
+            jsonObject.put("piso", salon.piso)
+            jsonObject.put("edificio_edificioid", salon.edificio_edificioid)
+            jsonArray.put(jsonObject)
+        }
+        Log.println(Log.INFO,"salon data", jsonArray.toString())
+        return jsonArray.toString()
+    }
+
+    @JavascriptInterface
+    fun getSalon(salonid:String):String{
+        val salones = dbHelper.getSalon(salonid)
+        val jsonArray = JSONArray()
+        for (salon in salones) {
+            val jsonObject = JSONObject()
+            jsonObject.put("salonid", salon.salonid)
+            jsonObject.put("nombre", salon.nombre)
+            jsonObject.put("descripcion", salon.descripcion)
             jsonObject.put("tipo", salon.tipo)
             jsonObject.put("piso", salon.piso)
             jsonObject.put("edificio_edificioid", salon.edificio_edificioid)
@@ -84,6 +103,7 @@ class WebAppInterface(private val context: Context,private val navController: Na
             val jsonObject = JSONObject()
             jsonObject.put("salonid", salon.salonid)
             jsonObject.put("nombre", salon.nombre)
+            jsonObject.put("descripcion", salon.descripcion)
             jsonObject.put("tipo", salon.tipo)
             jsonObject.put("piso", salon.piso)
             jsonObject.put("edificio_edificioid", salon.edificio_edificioid)
@@ -101,6 +121,7 @@ class WebAppInterface(private val context: Context,private val navController: Na
             val jsonObject = JSONObject()
             jsonObject.put("salonid", salon.salonid)
             jsonObject.put("nombre", salon.nombre)
+            jsonObject.put("descripcion", salon.descripcion)
             jsonObject.put("tipo", salon.tipo)
             jsonObject.put("piso", salon.piso)
             jsonObject.put("edificio_edificioid", salon.edificio_edificioid)

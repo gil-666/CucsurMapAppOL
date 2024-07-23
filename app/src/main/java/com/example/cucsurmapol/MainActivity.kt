@@ -3,6 +3,7 @@ package com.example.cucsurmapol
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.Window
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -40,6 +41,8 @@ class MainActivity : AppCompatActivity() {
                 // Add more cases for other destinations if needed
             }
         }
+
+
 
         navView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {

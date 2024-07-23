@@ -13,8 +13,8 @@
 
 <body>
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
-
     <div class="wrapper"><!--search bar-->
+
         <div class="searchBar">
             <input id="searchQueryInput" type="text" name="searchQueryInput" placeholder="Buscar un edificio o salón..."
                 value="" />
@@ -319,59 +319,13 @@
                     edificio: edificio,
                     salonid: viewableRooms[i].salonid,
                     nombre: viewableRooms[i].nombre,
+                    descripcion: viewableRooms[i].descripcion,
                     tipo: viewableRooms[i].tipo,
                     piso: viewableRooms[i].piso,
                     edificioid: viewableRooms[i].edificio_edificioid
                 });
 
-                var officeStyle = new ol.style.Style({
-                    stroke: new ol.style.Stroke({
-                        color: 'magenta',
-                        width: 1
-                    }),
-                    fill: new ol.style.Fill({
-                        color: 'rgba(255, 0, 255, 0.1)'
-                    }),
-                    text: new ol.style.Text({
-                        text: roomFeature.get('nombre'),
-                        font: '16px Calibri,sans-serif',
-                        fill: new ol.style.Fill({
-                            color: '#000'
-                        }),
-                        stroke: new ol.style.Stroke({
-                            color: '#fff',
-                            width: 2
-                        })
-                    })
-                });
-
-                var roomStyle = new ol.style.Style({
-                    stroke: new ol.style.Stroke({
-                        color: 'green',
-                        width: 1
-                    }),
-                    fill: new ol.style.Fill({
-                        color: 'rgba(0, 255, 0, 0.1)'
-                    }),
-                    text: new ol.style.Text({
-                        text: roomFeature.get('nombre'),
-                        font: '16px Calibri,sans-serif',
-                        fill: new ol.style.Fill({
-                            color: '#000'
-                        }),
-                        stroke: new ol.style.Stroke({
-                            color: '#fff',
-                            width: 2
-                        })
-                    })
-                });
-                if (roomFeature.get('tipo') == "salon") {
-                    roomFeature.setStyle(roomStyle);
-                } else if (roomFeature.get('tipo') == "oficina") {
-                    roomFeature.setStyle(officeStyle);
-                }
-
-
+                setFeatureStyle(roomFeature);
                 rooms.push(roomFeature);
             }
 
@@ -390,6 +344,7 @@
 
             map.getView().on('change:resolution', function () {
                 var zoom = map.getView().getZoom();
+                // console.log("current zoom: " + zoom)
                 roomLayer.setVisible(zoom >= roomTriggerZoom);
                 if (zoom < roomTriggerZoom) {
                     vectorLayer.setVisible(1);
@@ -401,6 +356,81 @@
 
             });
 
+        }
+
+        function splitTextIntoLines(text, maxLength) {
+            let lines = [];
+            for (let i = 0; i < text.length; i += maxLength) {
+                lines.push(text.substring(i, i + maxLength));
+
+            }
+            return lines;
+        }
+
+        function createDynamicTextStyle(text) {
+            const maxLineLength = 7; // Maximum number of characters per line
+            const maxLines = 3; // Maximum number of lines before truncation
+            const baseFontSize = 16; // Base font size
+
+            // Split text into lines
+            let lines = splitTextIntoLines(text, maxLineLength);
+
+            // Truncate lines if exceeding maximum number of lines
+            if (lines.length > maxLines) {
+                lines = lines.slice(0, maxLines - 1);
+                lines.push('...'); // Add ellipsis if truncated
+            }
+
+            // Create a multiline text string with line breaks
+            const multilineText = lines.join('\n');
+
+            return new ol.style.Text({
+                text: multilineText,
+                font: baseFontSize + 'px Calibri,sans-serif',
+                fill: new ol.style.Fill({
+                    color: '#000'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: '#fff',
+                    width: 2
+                }),
+                textBaseline: 'middle', // Align text vertically
+                offsetY: baseFontSize / 4.2 // Adjust vertical alignment
+            });
+        }
+
+        function getRoomStyle(feature) {
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'green',
+                    width: 1
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 255, 0, 0.1)'
+                }),
+                text: createDynamicTextStyle(feature.get('nombre'))
+            });
+        }
+
+        function getOfficeStyle(feature) {
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'magenta',
+                    width: 1
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 0, 255, 0.1)'
+                }),
+                text: createDynamicTextStyle(feature.get('nombre'))
+            });
+        }
+
+        function setFeatureStyle(feature) {
+            if (feature.get('tipo') === 'salon') {
+                feature.setStyle(getRoomStyle(feature));
+            } else if (feature.get('tipo') === 'oficina') {
+                feature.setStyle(getOfficeStyle(feature));
+            }
         }
 
         function drawBuildingStoryControl(edificio) {
@@ -703,6 +733,9 @@
 
                 var button = document.getElementById('view-details-btn');
                 document.getElementById('edificio-nombre').textContent = feature.get('nombre');
+                if(feature.get('descripcion')!= null){//show descripcion if it has one
+                    document.getElementById('edificio-descripcion').textContent = feature.get('descripcion');
+                }
                 switch (tipo) {
                     case "salon":
                         button.textContent = "Ver más"
@@ -781,11 +814,13 @@
                 popup.setPosition(undefined);
             }
 
+
         </script>
 
         <a href="#" id="popup-closer" class="ol-popup-closer"></a>
         <div id="popup-content">
             <p><strong id="edificio-nombre"></strong></p>
+            <p id="edificio-descripcion"></p>
             <button id="view-details-btn">Ver más</button>
         </div>
     </div>
