@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="bootstrap/js/bootstrap.bundle.min.js"></script>
+    <title>Lista</title>
+</head>
+
+<body>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            addSalonesFromAndroid();
+            document.getElementById("header-title").textContent = JSON.parse(Android.getEdificio(Android.getEdificioid()))[0].nombre;
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            // var div1 = document.getElementById("ed-grid");
+            // var info = Android.getSalonid();
+
+            // if (info) {
+            //     // If info is not empty or null, redirect to salon.html
+            //     window.location.href = 'salon.html';
+            // } else {
+            //     // Otherwise, display the received info
+            //     var div2 = document.createElement("div");
+            //     div2.textContent = "independent click";
+            //     div1.appendChild(div2);
+            // }
+        });
+        function addSalonesFromAndroid() {
+            var list = document.getElementById("edificioList");
+            var salones = JSON.parse(Android.getEdificioSalones(Android.getEdificioid()));
+            salones.forEach(function (sal) {
+                var link = document.createElement("a");
+                link.href = "salon.html";
+                link.className = 'col-3 li-item';
+                link.id = 'edificioItem';
+
+                var item = document.createElement("div");
+
+                var img = document.createElement("img");
+                if(sal.tipo == "salon"){
+                    img.src = 'images/salon.png';
+                }else if(sal.tipo == "oficina"){
+                    img.src = 'images/desk.png';
+                }
+                
+                item.appendChild(img);
+
+                var text = document.createElement("div");
+                text.textContent = sal.nombre;
+
+                item.appendChild(text);
+                link.appendChild(item);
+                list.appendChild(link);
+                link.addEventListener("click",function(event){
+                    Android.setSalonid(sal.salonid);
+                });
+
+            });
+
+
+        }
+
+        function resetInfo() {
+            Android.setSalonid("");
+            Android.setEdificioid("");
+        }
+    </script>
+    <div class="container">
+        <br>
+        <h2 class="text-center" id="header-title">Salones</h2>
+        <div id="ed-grid">
+            <div class="row text-center justify-content-center" id="edificioList">
+
+            </div>
+        </div>
+    </div>
+</body>
+<footer id="footer">
+    <br>
+    <div class="btn btn-primary"><a href="info.html" onclick="resetInfo()" id="back-button">Regresar</a></div>
+    <br><br>
+    ©2024 Universidad de Guadalajara
+</footer>
+
+</html>
