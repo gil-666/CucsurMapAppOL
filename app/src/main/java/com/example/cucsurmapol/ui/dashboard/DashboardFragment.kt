@@ -44,12 +44,9 @@ class DashboardFragment : Fragment() {
                 return false
             }
         })
-        val info = arguments?.getString("info")
         var infourl = "file:///android_asset/info.html"
+        var liveurl = "http://127.0.0.1:5500/info.html"
 
-        if (!info.isNullOrBlank()){
-            infourl+"?info=$info"
-        }
         val sharedViewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
         mapWebView.addJavascriptInterface(WebAppInterface(requireContext(),navController,sharedViewModel), "Android")
         mapWebView.loadUrl(infourl)

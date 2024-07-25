@@ -126,6 +126,34 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     }
 
+    fun getEdificio(id:String): List<Edificio> {
+        val edificio = mutableListOf<Edificio>()
+        val db: SQLiteDatabase = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM edificio WHERE id = $id", null)
+        if (cursor.moveToFirst()) {
+            do {
+                val id = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
+                val nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                val tipo = cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
+                val pisos = cursor.getString(cursor.getColumnIndexOrThrow("pisos"))
+                val lat = cursor.getString(cursor.getColumnIndexOrThrow("lat"))
+                val lon = cursor.getString(cursor.getColumnIndexOrThrow("lon"))
+                val imageData = cursor.getBlob(cursor.getColumnIndexOrThrow("icon"))
+                val imageData64 =  Base64.getEncoder().encodeToString(imageData)
+
+                //VERTICE DATA
+                val v1 = cursor.getString(cursor.getColumnIndexOrThrow("v1"))
+                val v2 = cursor.getString(cursor.getColumnIndexOrThrow("v2"))
+                val v3 = cursor.getString(cursor.getColumnIndexOrThrow("v3"))
+                val v4 = cursor.getString(cursor.getColumnIndexOrThrow("v4"))
+                edificio.add(Edificio(id, nombre, tipo, pisos, lat, lon, imageData64, v1, v2, v3, v4))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return edificio
+    }
+
     fun getSalonesAtEdificio(edificio: String): List<Salon>{
         val salones = mutableListOf<Salon>()
         val db: SQLiteDatabase = this.readableDatabase

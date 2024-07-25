@@ -46,9 +46,11 @@ class HomeFragment : Fragment() {
         val navController = findNavController()
         val sharedViewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
         mapWebView.addJavascriptInterface(WebAppInterface(requireContext(),navController,sharedViewModel), "Android")
+//        mapWebView.loadUrl("http://127.0.0.1:5500/map.html")
         mapWebView.loadUrl("file:///android_asset/map.html")
         root.findViewById<Button>(R.id.refreshButton)
             .setOnClickListener{
+//                mapWebView.loadUrl("http://127.0.0.1:5500/map.html")
                 mapWebView.loadUrl("file:///android_asset/map.html")
             }
 

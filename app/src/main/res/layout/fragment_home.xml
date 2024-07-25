@@ -10,10 +10,11 @@
 
     <Button
         android:id="@+id/refreshButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="refresh"
+        android:layout_width="57dp"
+        android:layout_height="46dp"
         android:visibility="visible"
+        app:icon="@drawable/baseline_refresh_24"
+        app:iconPadding="0dp"
         app:layout_constraintStart_toStartOf="parent"
         tools:ignore="MissingConstraints" />
 
