@@ -52,6 +52,9 @@
                 var button = document.createElement("div");
                 button.className = "btn btn-success map-locate-btn"
                 button.textContent = "Ubicar en el mapa";
+                button.addEventListener("click", function(event){
+                    navToSalon(sal.salonid)
+                });
 
                 item.appendChild(title);
                 item.appendChild(details);
@@ -66,10 +69,13 @@
         });
         function resetInfo() {
             if(Android.getSalonid() != ""){
-                document.getElementById("back-button").href = "info.html"
+                document.getElementById("back-button").href = "info.html";
             }
-            Android.setSalonid("")
+            Android.setSalonid("");
             
+        }
+        function navToSalon(id){
+            Android.navToMapSalon(id);
         }
 
     </script>

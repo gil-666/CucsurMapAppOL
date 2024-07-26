@@ -33,6 +33,17 @@ class WebAppInterface(private val context: Context,private val navController: Na
         }
     }
 
+    @JavascriptInterface
+    fun navToMapSalon(id: String) {
+        // Handle the received building info here
+        Toast.makeText(context, "$id", Toast.LENGTH_SHORT).show()
+        Log.println(Log.INFO,"navigated to map: ",id);
+        handler.post {
+            sharedViewModel.setSalonid(id)
+            navController.navigate(R.id.action_dashboardFragment_to_homeFragment)
+        }
+    }
+
     fun createToast(text: String){
         Toast.makeText(context, "$text", Toast.LENGTH_SHORT).show()
     }
@@ -156,6 +167,7 @@ class WebAppInterface(private val context: Context,private val navController: Na
 
     @JavascriptInterface
     fun getSalonid(): String {
+        Log.println(Log.INFO,"got salonid: ",sharedViewModel.info.value ?: "")
         return sharedViewModel.info.value ?: ""
     }
 

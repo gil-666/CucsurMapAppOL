@@ -124,7 +124,7 @@
 
         document.addEventListener('DOMContentLoaded', (event) => { //waits for map content then loads data
             addEdificiosFromAndroid();
-
+            
         });
 
         document.addEventListener("DOMContentLoaded", function () { //Listens for typing in search bar
@@ -136,6 +136,9 @@
                 resultBox.style.display = 'block';
                 handleSearch(searchTerm);
             });
+            if(Android.getSalonid() != ""){
+                travelToSalon(getSalonFeaturefromID(Android.getSalonid()));
+            }
         });
 
         function handleSearch(searchTerm) {
@@ -688,6 +691,17 @@
                 })
             });
             return edificioFound;
+        }
+
+        function getSalonFeaturefromID(salonid) {
+            var salonFound = undefined;
+            JSON.parse(Android.getSalon(salonid)).forEach(function (sal) {
+                    if (salonid == sal.salonid) {
+                        console.log("se encontro el salon en json: ", sal.salonid);
+                        salonFound = sal;
+                    }
+            });
+            return salonFound;
         }
 
     </script>
