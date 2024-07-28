@@ -19,7 +19,7 @@ import java.util.logging.Logger
 
 class WebAppInterface(private val context: Context,private val navController: NavController,private val sharedViewModel: SharedViewModel) {
 
-    private val dbHelper = DatabaseHelper(context)
+    public val dbHelper = DatabaseHelper(context,sharedViewModel)
     private val handler = Handler(Looper.getMainLooper())
 
     @JavascriptInterface

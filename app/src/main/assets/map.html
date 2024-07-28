@@ -55,6 +55,7 @@
         });
 
         //VALUES
+        let isEdificiosLoaded = false;
         var roomTriggerZoom = 19;
         var vectorSource = new ol.source.Vector();
         var vectorLayer = new ol.layer.Vector({
@@ -80,51 +81,62 @@
         var selectedFloor = 1 //SELECTED FLOOR VALUE
 
         function addEdificio(lon, lat, nombre, image, id, pisos, v1, v2, v3, v4, tipo) {
-            var salones = JSON.parse(Android.getEdificioSalones(id));
-            var edificio = new ol.Feature({
-                geometry: new ol.geom.Point(ol.proj.fromLonLat([lat, lon])),
-                nombre: nombre,
-                pisos: pisos,
-                id: id,
-                v1: v1,
-                v2: v2,
-                v3: v3,
-                v4: v4,
-                tipo: tipo,
-                image: image,
-                salones: salones
-            });
+            try {
 
-            edificios.push(edificio);
+                var salones = JSON.parse(Android.getEdificioSalones(id));
+                var edificio = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([lat, lon])),
+                    nombre: nombre,
+                    pisos: pisos,
+                    id: id,
+                    v1: v1,
+                    v2: v2,
+                    v3: v3,
+                    v4: v4,
+                    tipo: tipo,
+                    image: image,
+                    salones: salones
+                });
 
-            var edificioStyle = new ol.style.Style({
-                image: new ol.style.Icon({
-                    anchor: [0.5, 1],
-                    src: 'data:image/png;base64,' + image,
-                    scale: 1
-                })
-            });
 
-            edificio.setStyle(edificioStyle);
-            vectorSource.addFeature(edificio);
-            console.log("Added edificio:", edificio);
-            console.log("edificios", edificios);
-            console.log("salones: ", salones);
 
-            addRoomsInPolygon(edificio, salones, selectedFloor);
-            drawBuildingStoryControl(edificio);
+                var edificioStyle = new ol.style.Style({
+                    image: new ol.style.Icon({
+                        anchor: [0.5, 1],
+                        src: 'data:image/png;base64,' + image,
+                        scale: 1
+                    })
+                });
+
+                edificio.setStyle(edificioStyle);
+                edificios.push(edificio);
+                vectorSource.addFeature(edificio);
+                console.log("Added edificio with id:" + edificio.get('id'));
+                console.log("edificios", edificios);
+                console.log("salones: ", salones);
+
+                addRoomsInPolygon(edificio, salones, selectedFloor);
+                drawBuildingStoryControl(edificio);
+            } catch (error) {
+                console.error("error! while adding " + edificio.get('nombre') + ": ", error)
+            }
         }
 
         function addEdificiosFromAndroid() {
+            if (isEdificiosLoaded) {
+                console.log("Edificios already loaded, skipping");
+                return;
+            }
             var edificios = JSON.parse(Android.getEdificios());
             edificios.forEach(function (edificio) {
                 addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image, edificio.id, edificio.pisos, edificio.v1, edificio.v2, edificio.v3, edificio.v4, edificio.tipo);
             });
+            isEdificiosLoaded = true;
         }
 
         document.addEventListener('DOMContentLoaded', (event) => { //waits for map content then loads data
             addEdificiosFromAndroid();
-            
+
         });
 
         document.addEventListener("DOMContentLoaded", function () { //Listens for typing in search bar
@@ -136,7 +148,7 @@
                 resultBox.style.display = 'block';
                 handleSearch(searchTerm);
             });
-            if(Android.getSalonid() != ""){
+            if (Android.getSalonid() != "") {
                 travelToSalon(getSalonFeaturefromID(Android.getSalonid()));
             }
         });
@@ -289,6 +301,12 @@
             var v33 = ol.proj.fromLonLat(edificio.get('v3').split(',').map(Number));
             var v44 = ol.proj.fromLonLat(edificio.get('v4').split(',').map(Number));
 
+            console.log("add rooms for ", edificio.get('nombre'));
+            console.log("v1: ", v11);
+            console.log("v2: ", v22);
+            console.log("v3: ", v33);
+            console.log("v4: ", v44);
+
             var minX = Math.min(v11[0], v22[0], v33[0], v44[0]);
             var minY = Math.min(v11[1], v22[1], v33[1], v44[1]);
             var maxX = Math.max(v11[0], v22[0], v33[0], v44[0]);
@@ -363,10 +381,21 @@
 
         function splitTextIntoLines(text, maxLength) {
             let lines = [];
-            for (let i = 0; i < text.length; i += maxLength) {
-                lines.push(text.substring(i, i + maxLength));
+            let currentLine = '';
 
+            text.split(' ').forEach(word => {
+                if ((currentLine + word).length <= maxLength) {
+                    currentLine += (currentLine ? ' ' : '') + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            });
+
+            if (currentLine) {
+                lines.push(currentLine);
             }
+
             return lines;
         }
 
@@ -428,19 +457,46 @@
             });
         }
 
+        function getEmptyStyle(feature) {
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'rgba(0, 0, 0, 0.0)',
+                    width: 1
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 0, 0.0)'
+                }),
+                text: null
+            });
+        }
+
         function setFeatureStyle(feature) {
-            if (feature.get('tipo') === 'salon') {
-                feature.setStyle(getRoomStyle(feature));
-            } else if (feature.get('tipo') === 'oficina') {
-                feature.setStyle(getOfficeStyle(feature));
+            switch (feature.get('tipo')) {
+                case 'salon':
+                    feature.setStyle(getRoomStyle(feature));
+                    break;
+                case 'oficina':
+                    feature.setStyle(getOfficeStyle(feature));
+                    break;
+                case 'vacio':
+                    feature.setStyle(getEmptyStyle(feature));
+                    break;
+                default:
+                    console.log(`No style defined for tipo: ${feature.get('tipo')}`);
+                    break;
             }
         }
 
         function drawBuildingStoryControl(edificio) {
-            var v1 = ol.proj.fromLonLat(edificio.get('v1').split(',').map(Number));
-            var v2 = ol.proj.fromLonLat(edificio.get('v2').split(',').map(Number));
-            var v3 = ol.proj.fromLonLat(edificio.get('v3').split(',').map(Number));
-            var v4 = ol.proj.fromLonLat(edificio.get('v4').split(',').map(Number));
+            var v1 = ol.proj.fromLonLat(edificio.get('v1').split(','));
+            var v2 = ol.proj.fromLonLat(edificio.get('v2').split(','));
+            var v3 = ol.proj.fromLonLat(edificio.get('v3').split(','));
+            var v4 = ol.proj.fromLonLat(edificio.get('v4').split(','));
+            console.log("for ", edificio.get('nombre'));
+            console.log("v1: ", v1);
+            console.log("v2: ", v2);
+            console.log("v3: ", v3);
+            console.log("v4: ", v4);
 
             var topY = Math.max(v1[1], v2[1], v3[1], v4[1]);
             var bottomY = Math.min(v1[1], v2[1], v3[1], v4[1]);
@@ -582,7 +638,7 @@
 
 
             }
-            else if (feature && feature.get('salonid')) {//if the feature clicked is a salon
+            else if (feature && feature.get('salonid') && feature.get('tipo') != "vacio") {//if the feature clicked is a salon
                 var salon = {
                     id: feature.get('salonid')
                 }
@@ -634,6 +690,7 @@
                     currentHiddenFeature = null;
                 }
                 map.removeLayer(edificioVerticeLayer);
+                Android.setSalonid("");
             };
         });
 
@@ -696,10 +753,10 @@
         function getSalonFeaturefromID(salonid) {
             var salonFound = undefined;
             JSON.parse(Android.getSalon(salonid)).forEach(function (sal) {
-                    if (salonid == sal.salonid) {
-                        console.log("se encontro el salon en json: ", sal.salonid);
-                        salonFound = sal;
-                    }
+                if (salonid == sal.salonid) {
+                    console.log("se encontro el salon en json: ", sal.salonid);
+                    salonFound = sal;
+                }
             });
             return salonFound;
         }
@@ -714,7 +771,7 @@
             border-radius: 5px;
             border: 1px solid #ccc;
             top: 10px;
-            max-width: 250px;
+            max-width: 450px;
             /* Limit maximum width */
         }
 
@@ -747,7 +804,7 @@
 
                 var button = document.getElementById('view-details-btn');
                 document.getElementById('edificio-nombre').textContent = feature.get('nombre');
-                if(feature.get('descripcion')!= null){//show descripcion if it has one
+                if (feature.get('descripcion') != null) {//show descripcion if it has one
                     document.getElementById('edificio-descripcion').textContent = feature.get('descripcion');
                 }
                 switch (tipo) {
@@ -771,8 +828,8 @@
                     var center = ol.extent.getCenter(ext);
                     var view = map.getView();
                     view.animate({
-                        projection: 'EPSG:3857',//or any projection you are using
-                        center: [center[0], center[1]],//zoom to the center of your feature
+                        projection: 'EPSG:3857',
+                        center: [center[0], center[1]],//zoom to the center of feature
                         zoom: 19.5,
                         duration: 1000,
                         extent: bounds

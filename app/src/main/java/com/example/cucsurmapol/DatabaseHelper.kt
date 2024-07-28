@@ -1,34 +1,63 @@
 package com.example.cucsurmapol
 
+import android.app.Activity
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
+import android.util.Log
+import android.widget.Toast
+import okhttp3.Headers
+import okhttp3.MediaType.Companion.get
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.lang.reflect.Array.get
+import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.util.Base64
+import java.util.concurrent.CountDownLatch
+import kotlin.time.Duration.Companion.seconds
 
-class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewModel) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val DATABASE_NAME = "cucsur_data.db"
         private const val DATABASE_VERSION = 1
         private const val DATABASE_PATH = "/databases/"
+        private const val REMOTE_DATABASE_URL = "http://177.230.254.9/db/cucsur_data.db"
     }
-
+    var useRemote = true
     private val dbPath: String = context.applicationInfo.dataDir + DATABASE_PATH + DATABASE_NAME
 
     init {
-//        val dbFile = File(dbPath)
-//        if (!dbFile.exists() && !compareDatabaseHashes(context)) {
-            copyDatabase(context)
-//        }
+            loadDatabase(context)
     }
+    fun loadDatabase(context: Context) {
+        val latch = CountDownLatch(1)
+        if (isInternetAvailable(context) && useRemote && sharedViewModel.dbLoaded.value != true) {
+            downloadDatabase(context, latch)
+            Toast.makeText(context,"descargando bd del servidor....",Toast.LENGTH_SHORT).show()
 
+        } else if (sharedViewModel.dbLoaded.value == true) {
+            // Database is already loaded, no need to download again
+            latch.countDown()
+        } else {
+            copyDatabase(context)
+            Toast.makeText(context,"Sin conexión",Toast.LENGTH_SHORT).show()
+            sharedViewModel.dbLoaded.postValue(true)
+            latch.countDown()
+
+        }
+        latch.await()
+    }
     private fun copyDatabase(context: Context) {
         try {
             val inputStream: InputStream = context.assets.open(DATABASE_NAME)
@@ -157,7 +186,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     fun getSalonesAtEdificio(edificio: String): List<Salon>{
         val salones = mutableListOf<Salon>()
         val db: SQLiteDatabase = this.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM salon WHERE edificio_edificioid == '$edificio'", null)
+        val cursor = db.rawQuery("SELECT * FROM salon WHERE edificio_edificioid == '$edificio' ORDER BY indice", null)
         if (cursor.moveToFirst()) {
             do {
                 val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
@@ -224,5 +253,111 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             }
         }
         return null
+    }
+
+    //REMOTE DATABASE
+    private fun isInternetAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+
+        val isConnected = networkCapabilities != null &&
+                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+
+        Log.println(Log.INFO, "InternetCheck", "checking internet connection...")
+
+        if (!isConnected) {
+            return false
+        }
+
+        return try {
+
+            val process = Runtime.getRuntime().exec("ping -c 1 google.com")
+            val exitValue = process.waitFor()
+            exitValue == 0
+        } catch (e: IOException) {
+            e.printStackTrace()
+            false
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    private fun downloadDatabase(context: Context, latch: CountDownLatch) {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(3000, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+
+        val request = Request.Builder()
+            .url("$REMOTE_DATABASE_URL")
+            .header("User-Agent", "CUCSURMapApp-${context.getString(R.string.app_version)} ${Build.MANUFACTURER}:${Build.MODEL}")
+            .build()
+
+        try{
+            client.newCall(request).enqueue(object : okhttp3.Callback {
+                override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                    e.printStackTrace()
+                    copyDatabase(context)
+                    latch.countDown()
+                    if(sharedViewModel.dbLoaded.value != true){
+                        (context as? Activity)?.runOnUiThread {
+                            Toast.makeText(context, "Error al descargar la base remota, usando BD local", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
+                override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                    if (!response.isSuccessful) {
+                        latch.countDown()
+                        sharedViewModel.dbLoaded.postValue(true)
+
+                        return
+                    }
+                    response.body?.let { body ->
+                        val file = File(dbPath)
+                        val inputStream: InputStream = body.byteStream()
+                        val outputStream = FileOutputStream(file)
+
+                        inputStream.use { input ->
+                            outputStream.use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                    }
+                    latch.countDown()
+                    sharedViewModel.dbLoaded.postValue(true)
+                    (context as? Activity)?.runOnUiThread {
+                        Toast.makeText(context, "Exito!, ${getVersion()[0]}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            })
+        }catch (e: SocketTimeoutException){
+            e.printStackTrace()
+
+            sharedViewModel.dbLoaded.postValue(true)
+        }
+
+    }
+
+    fun getVersion(): List<String> {
+        val info = mutableListOf<String>()
+        val db: SQLiteDatabase = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM info", null)
+        if (cursor.moveToFirst()) {
+            do {
+                val version = cursor.getString(cursor.getColumnIndexOrThrow("version"))
+                val date = cursor.getString(cursor.getColumnIndexOrThrow("date"))
+                info.add("Current DB Version: $version")
+
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+
+        return info
     }
 }

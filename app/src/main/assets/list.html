@@ -34,31 +34,40 @@
             var list = document.getElementById("edificioList");
             var salones = JSON.parse(Android.getEdificioSalones(Android.getEdificioid()));
             salones.forEach(function (sal) {
-                var link = document.createElement("a");
-                link.href = "salon.html";
-                link.className = 'col-3 li-item';
-                link.id = 'edificioItem';
+                if (sal.tipo != "vacio") {
+                    var link = document.createElement("a");
+                    link.href = "salon.html";
+                    link.className = 'col-3 li-item';
+                    link.id = 'edificioItem';
 
-                var item = document.createElement("div");
+                    var item = document.createElement("div");
 
-                var img = document.createElement("img");
-                if(sal.tipo == "salon"){
-                    img.src = 'images/salon.png';
-                }else if(sal.tipo == "oficina"){
-                    img.src = 'images/desk.png';
+                    var img = document.createElement("img");
+                    switch (sal.tipo) {
+                        case "salon":
+                            img.src = 'images/salon.png';
+                            break;
+                        case "oficina":
+                            img.src = 'images/desk.png';
+                            break;
+                        default:
+                            break;
+                    }
+
+                    item.appendChild(img);
+
+                    var text = document.createElement("div");
+                    text.textContent = sal.nombre;
+
+                    item.appendChild(text);
+                    link.appendChild(item);
+                    list.appendChild(link);
+                    link.addEventListener("click", function (event) {
+                        Android.setSalonid(sal.salonid);
+                    });
                 }
-                
-                item.appendChild(img);
 
-                var text = document.createElement("div");
-                text.textContent = sal.nombre;
 
-                item.appendChild(text);
-                link.appendChild(item);
-                list.appendChild(link);
-                link.addEventListener("click",function(event){
-                    Android.setSalonid(sal.salonid);
-                });
 
             });
 

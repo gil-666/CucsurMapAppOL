@@ -3,4 +3,5 @@
     <string name="title_home">Mapa</string>
     <string name="title_dashboard">Directorio</string>
     <string name="title_notifications">Notifications</string>
+    <string name="app_version" translatable="false">dev-android</string>
 </resources>
