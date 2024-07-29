@@ -27,7 +27,6 @@ class HomeFragment : Fragment() {
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
-    private lateinit var dbHelper: DatabaseHelper
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,25 +40,26 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
 
         val sharedViewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
-        dbHelper = DatabaseHelper(requireContext(), sharedViewModel)
-
         val mapWebView: WebView = binding.mapWebView
         val webSettings: WebSettings = mapWebView.settings
         webSettings.javaScriptEnabled = true
         WebView.setWebContentsDebuggingEnabled(true)
 
         val navController = findNavController()
-        mapWebView.addJavascriptInterface(WebAppInterface(requireContext(), navController, sharedViewModel), "Android")
+        val webAppint = WebAppInterface(requireContext(), navController, sharedViewModel);
+        mapWebView.addJavascriptInterface(webAppint, "Android")
         mapWebView.loadUrl("file:///android_asset/map.html")
-        sharedViewModel.dbLoaded.postValue(true)
+//        sharedViewModel.dbLoaded.postValue(true)
 
         root.findViewById<Button>(R.id.refreshButton).setOnClickListener {
             sharedViewModel.dbLoaded.postValue(false)
             Handler(Looper.getMainLooper()).post {
-                dbHelper.loadDatabase(requireContext())
+                webAppint.dbHelper.loadDatabase(requireContext())
                 mapWebView.loadUrl("file:///android_asset/map.html")
             }
         }
+
+
 
         return root
     }

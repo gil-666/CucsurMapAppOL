@@ -35,6 +35,7 @@
 
     </div>
     <script>
+
         var bounds = ol.proj.transformExtent(
             [-104.35944, 19.772676, -104.357180, 19.77638],  // [minx, miny, maxx, maxy] EPSG:4326 
             'EPSG:4326',           // source  PROJECTIONS
@@ -53,6 +54,7 @@
                 extent: bounds
             })
         });
+
 
         //VALUES
         let isEdificiosLoaded = false;
@@ -138,7 +140,7 @@
             addEdificiosFromAndroid();
 
         });
-
+        var searchBoxOpen = false;
         document.addEventListener("DOMContentLoaded", function () { //Listens for typing in search bar
             const searchBar = document.getElementById("searchQueryInput");
             const resultBox = document.getElementById("resultBox");
@@ -147,6 +149,11 @@
                 console.log("User typed: " + searchTerm);
                 resultBox.style.display = 'block';
                 handleSearch(searchTerm);
+            });
+            searchBar.addEventListener("click", function (event) {
+                handleSearch("");
+                event.target.value = "";
+                searchBoxOpen= true;
             });
             if (Android.getSalonid() != "") {
                 travelToSalon(getSalonFeaturefromID(Android.getSalonid()));
@@ -602,6 +609,11 @@
         }
 
         map.on('click', function (event) {
+            if(searchBoxOpen){
+                document.getElementById("resultBox").style.display = "none";
+                searchBoxOpen = false;
+            }
+            
             var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
                 return feature;
             }, {

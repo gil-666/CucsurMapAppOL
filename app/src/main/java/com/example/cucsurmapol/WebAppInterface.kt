@@ -1,25 +1,18 @@
 package com.example.cucsurmapol
 
-import android.app.appsearch.StorageInfo
 import android.content.Context
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.widget.Toast
-import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation.NavController
-import com.example.cucsurmapol.ui.dashboard.DashboardFragment
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.logging.Logger
 
 class WebAppInterface(private val context: Context,private val navController: NavController,private val sharedViewModel: SharedViewModel) {
 
-    public val dbHelper = DatabaseHelper(context,sharedViewModel)
+    val dbHelper = DatabaseHelper(context,sharedViewModel)
     private val handler = Handler(Looper.getMainLooper())
 
     @JavascriptInterface

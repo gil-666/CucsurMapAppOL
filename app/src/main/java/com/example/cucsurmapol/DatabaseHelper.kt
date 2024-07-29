@@ -3,14 +3,13 @@ package com.example.cucsurmapol
 import android.app.Activity
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
-import okhttp3.Headers
-import okhttp3.MediaType.Companion.get
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -19,14 +18,12 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.lang.reflect.Array.get
 import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.concurrent.CountDownLatch
-import kotlin.time.Duration.Companion.seconds
 
-class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewModel) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewModel) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val DATABASE_NAME = "cucsur_data.db"
@@ -38,24 +35,72 @@ class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewMod
     private val dbPath: String = context.applicationInfo.dataDir + DATABASE_PATH + DATABASE_NAME
 
     init {
+        initializeDatabase(context)
+        if (isDatabaseValid(File(dbPath)) || (!isInternetAvailable(context) && isDatabaseValid(File(dbPath)))) {
+            // Load downloaded database
+            Toast.makeText(context, "se encontro bd descargada", Toast.LENGTH_SHORT).show()
+        } else {
             loadDatabase(context)
+        }
+
+    }
+
+    fun initializeDatabase(context: Context) {
+        val initFile = File(context.filesDir, DATABASE_NAME)
+        val parentDir = File(dbPath).parentFile
+        if (!parentDir.exists()) {
+            parentDir.mkdirs() // Create directories if not exist
+        }
+        if (!initFile.exists()) {
+            try {
+                copyDatabase(context)
+                initFile.createNewFile()
+                Log.i("initializedatabase","app first time!")
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }else{
+            Log.i("initializedatabase","app not first time!")
+        }
+    }
+
+    fun isDatabaseValid(file: File): Boolean {
+        if (!file.exists()) {
+            return false
+        }
+        return try {
+            val db = SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
+            val cursor = db.rawQuery("SELECT * FROM edificio WHERE type='table'", null)
+            val valid = cursor.count > 0
+            cursor.close()
+            db.close()
+            valid
+        } catch (e: SQLiteException) {
+            false
+        }
     }
     fun loadDatabase(context: Context) {
         val latch = CountDownLatch(1)
+
         if (isInternetAvailable(context) && useRemote && sharedViewModel.dbLoaded.value != true) {
             downloadDatabase(context, latch)
-            Toast.makeText(context,"descargando bd del servidor....",Toast.LENGTH_SHORT).show()
-
+            Toast.makeText(context, "descargando bd del servidor....", Toast.LENGTH_SHORT).show()
         } else if (sharedViewModel.dbLoaded.value == true) {
             // Database is already loaded, no need to download again
             latch.countDown()
-        } else {
-            copyDatabase(context)
-            Toast.makeText(context,"Sin conexión",Toast.LENGTH_SHORT).show()
+        } else if (isDatabaseValid(File(dbPath)) || !compareDatabaseHashes(context)) {
+            // Use the valid downloaded database
+            Toast.makeText(context, "Sin conexion, usando la ultima bd descargada", Toast.LENGTH_SHORT).show()
             sharedViewModel.dbLoaded.postValue(true)
             latch.countDown()
-
+        } else {
+            // Fall back to copying the database from assets
+            copyDatabase(context)
+            Toast.makeText(context, "Sin conexión, bd descargada no valida, revirtiendo a original", Toast.LENGTH_SHORT).show()
+            sharedViewModel.dbLoaded.postValue(true)
+            latch.countDown()
         }
+
         latch.await()
     }
     private fun copyDatabase(context: Context) {
@@ -206,7 +251,8 @@ class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewMod
     fun getSalonSearches(search:String):List<Salon>{
         val results = mutableListOf<Salon>()
         val db: SQLiteDatabase = this.readableDatabase;
-        val cursor = db.rawQuery("SELECT * FROM salon WHERE nombre LIKE '%$search%'", null)
+        val cursor = db.rawQuery("SELECT * FROM salon WHERE nombre LIKE '%$search%' AND tipo !=" +
+                " 'vacio' ORDER BY tipo", null)
         if (cursor.moveToFirst()){
             do {
                 val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
@@ -257,32 +303,35 @@ class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewMod
 
     //REMOTE DATABASE
     private fun isInternetAvailable(context: Context): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork
-        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+        if(sharedViewModel.dbLoaded.value != true){
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = connectivityManager.activeNetwork
+            val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
 
-        val isConnected = networkCapabilities != null &&
-                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            val isConnected = networkCapabilities != null &&
+                    networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
-        Log.println(Log.INFO, "InternetCheck", "checking internet connection...")
+            Log.println(Log.INFO, "InternetCheck", "checking internet connection...")
 
-        if (!isConnected) {
-            return false
+            if (!isConnected) {
+                return false
+            }
+
+            return try {
+
+                val process = Runtime.getRuntime().exec("ping -c 1 google.com")
+                val exitValue = process.waitFor()
+                exitValue == 0
+            } catch (e: IOException) {
+                e.printStackTrace()
+                false
+            } catch (e: InterruptedException) {
+                e.printStackTrace()
+                false
+            }
         }
-
-        return try {
-
-            val process = Runtime.getRuntime().exec("ping -c 1 google.com")
-            val exitValue = process.waitFor()
-            exitValue == 0
-        } catch (e: IOException) {
-            e.printStackTrace()
-            false
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
-            false
-        }
+        return false
     }
 
     private fun downloadDatabase(context: Context, latch: CountDownLatch) {
@@ -301,12 +350,13 @@ class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewMod
             client.newCall(request).enqueue(object : okhttp3.Callback {
                 override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
                     e.printStackTrace()
-                    copyDatabase(context)
                     latch.countDown()
                     if(sharedViewModel.dbLoaded.value != true){
                         (context as? Activity)?.runOnUiThread {
-                            Toast.makeText(context, "Error al descargar la base remota, usando BD local", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error al descargar la base remota, usando BD mas reciente", Toast.LENGTH_SHORT).show()
                         }
+
+                        sharedViewModel.dbLoaded.postValue(true)
                     }
                 }
 
@@ -314,11 +364,17 @@ class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewMod
                     if (!response.isSuccessful) {
                         latch.countDown()
                         sharedViewModel.dbLoaded.postValue(true)
-
                         return
                     }
                     response.body?.let { body ->
                         val file = File(dbPath)
+                        val parentDir = file.parentFile
+
+                        // Ensure the directory exists
+                        if (!parentDir.exists()) {
+                            parentDir.mkdirs() // Create directories if not exist
+                        }
+
                         val inputStream: InputStream = body.byteStream()
                         val outputStream = FileOutputStream(file)
 
@@ -331,7 +387,7 @@ class DatabaseHelper(context: Context,private val sharedViewModel: SharedViewMod
                     latch.countDown()
                     sharedViewModel.dbLoaded.postValue(true)
                     (context as? Activity)?.runOnUiThread {
-                        Toast.makeText(context, "Exito!, ${getVersion()[0]}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Éxito!, ${getVersion()[0]}", Toast.LENGTH_SHORT).show()
                     }
                 }
             })
