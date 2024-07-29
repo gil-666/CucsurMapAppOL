@@ -16,6 +16,7 @@
         //VALUES
         var salonDescriptor = "Salón de clases";
         var oficinaDescriptor = "Oficina";
+        var sanitarioDescriptor = "Sanitarios";
 
         document.addEventListener('DOMContentLoaded', function () {
             var div1 = document.getElementById("sal-grid");
@@ -39,6 +40,9 @@
                 }
                 else if (sal.tipo == "oficina") {
                     tipo.innerHTML = "<strong>Tipo:</strong><br> " + oficinaDescriptor;
+                }
+                else if (sal.tipo == "sanitario") {
+                    tipo.innerHTML = "<strong>Tipo:</strong><br> " + sanitarioDescriptor;
                 } else {
                     tipo.innerHTML = "<strong>Tipo:</strong><br> " + sal.tipo;
                 }

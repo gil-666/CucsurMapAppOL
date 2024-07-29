@@ -406,10 +406,10 @@
             return lines;
         }
 
-        function createDynamicTextStyle(text) {
-            const maxLineLength = 7; // Maximum number of characters per line
+        function createDynamicTextStyle(text,fontSize) {
+            const maxLineLength = 9; // Maximum number of characters per line
             const maxLines = 3; // Maximum number of lines before truncation
-            const baseFontSize = 16; // Base font size
+            var baseFontSize = fontSize; // Base font size
 
             // Split text into lines
             let lines = splitTextIntoLines(text, maxLineLength);
@@ -447,7 +447,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(0, 255, 0, 0.1)'
                 }),
-                text: createDynamicTextStyle(feature.get('nombre'))
+                text: createDynamicTextStyle(feature.get('nombre'),16)
             });
         }
 
@@ -460,7 +460,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(255, 0, 255, 0.1)'
                 }),
-                text: createDynamicTextStyle(feature.get('nombre'))
+                text: createDynamicTextStyle(feature.get('nombre'),14)
             });
         }
 
@@ -477,6 +477,19 @@
             });
         }
 
+        function getBathroomStyle(feature) {
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'blue',
+                    width: 1
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 255, 0.5)'
+                }),
+                text: createDynamicTextStyle(feature.get('nombre'),20)
+            });
+        }
+
         function setFeatureStyle(feature) {
             switch (feature.get('tipo')) {
                 case 'salon':
@@ -487,6 +500,9 @@
                     break;
                 case 'vacio':
                     feature.setStyle(getEmptyStyle(feature));
+                    break;
+                case 'sanitario':
+                    feature.setStyle(getBathroomStyle(feature));
                     break;
                 default:
                     console.log(`No style defined for tipo: ${feature.get('tipo')}`);

@@ -50,12 +50,15 @@
                         case "oficina":
                             img.src = 'images/desk.png';
                             break;
+                        case "sanitario":
+                            img.src = 'images/wc_all.png'
+                            sal.nombre = sal.nombre.split(':').map(String)[0]
                         default:
                             break;
                     }
 
                     item.appendChild(img);
-
+                    
                     var text = document.createElement("div");
                     text.textContent = sal.nombre;
 
