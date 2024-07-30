@@ -10,12 +10,15 @@
 
     <Button
         android:id="@+id/refreshButton"
-        android:layout_width="57dp"
+        android:layout_width="55dp"
         android:layout_height="46dp"
+        android:layout_marginBottom="8dp"
         android:visibility="visible"
         app:icon="@drawable/baseline_refresh_24"
         app:iconPadding="0dp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/mapWebView"
+        app:layout_constraintStart_toEndOf="@+id/mapWebView"
         tools:ignore="MissingConstraints" />
 
     <WebView
