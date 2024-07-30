@@ -225,7 +225,7 @@
                 }
             });
         }
-
+        
         function highlightSalon(room) {
             var currentHiddenRoomStyle = room.getStyle();
             console.log("original style: ", JSON.stringify(currentHiddenRoomStyle, null, 2));
@@ -236,19 +236,9 @@
                     width: 1
                 }),
                 fill: new ol.style.Fill({
-                    color: 'rgba(0, 0, 255, 0.1)'
+                    color: 'rgba(0, 0, 255, 0.8)'
                 }),
-                text: new ol.style.Text({
-                    text: room.get('nombre'),
-                    font: '16px Calibri,sans-serif',
-                    fill: new ol.style.Fill({
-                        color: '#000'
-                    }),
-                    stroke: new ol.style.Stroke({
-                        color: '#fff',
-                        width: 2
-                    })
-                })
+                text: createDynamicTextStyle(room.get('nombre'),14)
             });
 
             room.setStyle(roomHighlight);
@@ -486,7 +476,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(0, 0, 255, 0.5)'
                 }),
-                text: createDynamicTextStyle(feature.get('nombre'),20)
+                text: createDynamicTextStyle(feature.get('nombre'),18)
             });
         }
 
