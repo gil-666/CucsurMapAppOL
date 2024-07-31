@@ -29,7 +29,8 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         private const val DATABASE_NAME = "cucsur_data.db"
         private const val DATABASE_VERSION = 1
         private const val DATABASE_PATH = "/databases/"
-        private const val REMOTE_DATABASE_URL = "http://177.230.254.9/db/cucsur_data.db"
+        const val SERVER_IP = "177.230.254.9"
+        private const val REMOTE_DATABASE_URL = "http://$SERVER_IP/db/cucsur_data.db"
     }
     var useRemote = true
     private val dbPath: String = context.applicationInfo.dataDir + DATABASE_PATH + DATABASE_NAME
@@ -82,13 +83,13 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
     fun loadDatabase(context: Context) {
         val latch = CountDownLatch(1)
 
-        if (isInternetAvailable(context) && useRemote && sharedViewModel.dbLoaded.value != true) {
+        if (isInternetAvailable(context) && useRemote && sharedViewModel.dbLoaded.value != true && !isLocalHigherVersion(context)) {
             downloadDatabase(context, latch)
             Toast.makeText(context, "descargando bd del servidor....", Toast.LENGTH_SHORT).show()
         } else if (sharedViewModel.dbLoaded.value == true) {
             // Database is already loaded, no need to download again
             latch.countDown()
-        } else if (isDatabaseValid(File(dbPath)) || !compareDatabaseHashes(context)) {
+        } else if (isDatabaseValid(File(dbPath)) || !compareDatabaseHashes(context) && !isLocalHigherVersion(context)) {
             // Use the valid downloaded database
             Toast.makeText(context, "Sin conexion, usando la ultima bd descargada", Toast.LENGTH_SHORT).show()
             sharedViewModel.dbLoaded.postValue(true)
@@ -96,7 +97,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         } else {
             // Fall back to copying the database from assets
             copyDatabase(context)
-            Toast.makeText(context, "Sin conexión, bd descargada no valida, revirtiendo a original", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "usando bd original", Toast.LENGTH_SHORT).show()
             sharedViewModel.dbLoaded.postValue(true)
             latch.countDown()
         }
@@ -415,5 +416,52 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         db.close()
 
         return info
+    }
+
+    fun isLocalHigherVersion(context: Context): Boolean {
+        val assetVersion = getDatabaseVersionFromAssets(context)
+        val currentVersion = getCurrentDatabaseVersion()
+
+        return assetVersion > currentVersion
+    }
+
+    // Helper to get version from the asset database
+    private fun getDatabaseVersionFromAssets(context: Context): Double {
+        return try {
+            val assetDbStream = context.assets.open(DATABASE_NAME)
+            val tempFile = File(context.cacheDir, DATABASE_NAME)
+            val outputStream = FileOutputStream(tempFile)
+
+            assetDbStream.copyTo(outputStream)
+
+            val tempDb = SQLiteDatabase.openDatabase(tempFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+            val cursor = tempDb.rawQuery("SELECT version FROM info", null)
+            val version = if (cursor.moveToFirst()) cursor.getString(cursor.getColumnIndexOrThrow("version")) else "0.0"
+            cursor.close()
+            tempDb.close()
+            tempFile.delete() // Clean up the temporary file
+            Log.i("ver check","asset ver $version")
+            version.toDouble()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            0.0
+        }
+    }
+
+
+    // Helper to get the current version from the local database
+    private fun getCurrentDatabaseVersion(): Double {
+        return try {
+            val db = this.readableDatabase
+            val cursor = db.rawQuery("SELECT version FROM info", null)
+            val version = if (cursor.moveToFirst()) cursor.getString(cursor.getColumnIndexOrThrow("version")) else "0.0"
+            cursor.close()
+            db.close()
+            Log.i("ver check","current ver $version")
+            version.toDouble()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            0.0
+        }
     }
 }

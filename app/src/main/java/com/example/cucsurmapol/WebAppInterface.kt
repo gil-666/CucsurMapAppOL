@@ -6,11 +6,13 @@ import android.os.Looper
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.widget.Toast
+import androidx.fragment.app.FragmentManager
 import androidx.navigation.NavController
 import org.json.JSONArray
 import org.json.JSONObject
 
-class WebAppInterface(private val context: Context,private val navController: NavController,private val sharedViewModel: SharedViewModel) {
+class WebAppInterface(private val context: Context,private val navController: NavController,private val sharedViewModel: SharedViewModel,private val fragmentManager: FragmentManager // Add FragmentManager here
+) {
 
     val dbHelper = DatabaseHelper(context,sharedViewModel)
     private val handler = Handler(Looper.getMainLooper())
@@ -179,5 +181,12 @@ class WebAppInterface(private val context: Context,private val navController: Na
     fun setEdificioid(id: String) {
         sharedViewModel.setEdificioid(id)
         Log.println(Log.INFO,"suck my balls recieved: ",id);
+    }
+
+    @JavascriptInterface
+    fun sendFeedback(){
+        val feedbackDialog = FeedbackDialogFragment(context)
+        val supportFragmentManager = fragmentManager
+        feedbackDialog.show(supportFragmentManager, "FeedbackDialog")
     }
 }

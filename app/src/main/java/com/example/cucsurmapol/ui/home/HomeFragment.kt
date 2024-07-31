@@ -46,7 +46,7 @@ class HomeFragment : Fragment() {
         WebView.setWebContentsDebuggingEnabled(true)
 
         val navController = findNavController()
-        val webAppint = WebAppInterface(requireContext(), navController, sharedViewModel);
+        val webAppint = WebAppInterface(requireContext(), navController, sharedViewModel,parentFragmentManager);
         mapWebView.addJavascriptInterface(webAppint, "Android")
         mapWebView.loadUrl("file:///android_asset/map.html")
 //        sharedViewModel.dbLoaded.postValue(true)

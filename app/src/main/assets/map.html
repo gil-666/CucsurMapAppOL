@@ -424,7 +424,8 @@
                     width: 2
                 }),
                 textBaseline: 'middle', // Align text vertically
-                offsetY: baseFontSize / 4.2 // Adjust vertical alignment
+                offsetY: baseFontSize / 4.2, // Adjust vertical alignment
+                overflow: true
             });
         }
 
@@ -437,7 +438,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(0, 255, 0, 0.1)'
                 }),
-                text: createDynamicTextStyle(feature.get('nombre'),16)
+                text: createDynamicTextStyle(feature.get('nombre'),16),
             });
         }
 

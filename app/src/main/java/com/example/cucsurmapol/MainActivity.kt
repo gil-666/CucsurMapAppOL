@@ -4,15 +4,18 @@ import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.cucsurmapol.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityMainBinding
 
 
@@ -20,7 +23,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -71,5 +73,9 @@ class MainActivity : AppCompatActivity() {
         if (!navController.popBackStack()) {
             super.onBackPressed()
         }
+    }
+
+    companion object {
+        const val REQUEST_PERMISSION_CODE = 100
     }
 }
