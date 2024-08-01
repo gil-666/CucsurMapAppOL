@@ -32,7 +32,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         const val SERVER_IP = "177.230.254.9"
         private const val REMOTE_DATABASE_URL = "http://$SERVER_IP/db/cucsur_data.db"
     }
-    var useRemote = true
+    private var useRemote = true
     private val dbPath: String = context.applicationInfo.dataDir + DATABASE_PATH + DATABASE_NAME
 
     init {
@@ -46,11 +46,13 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
 
     }
 
-    fun initializeDatabase(context: Context) {
+    private fun initializeDatabase(context: Context) {
         val initFile = File(context.filesDir, DATABASE_NAME)
         val parentDir = File(dbPath).parentFile
-        if (!parentDir.exists()) {
-            parentDir.mkdirs() // Create directories if not exist
+        if (parentDir != null) {
+            if (!parentDir.exists()) {
+                parentDir.mkdirs() // Create directories if not exist
+            }
         }
         if (!initFile.exists()) {
             try {
@@ -65,7 +67,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         }
     }
 
-    fun isDatabaseValid(file: File): Boolean {
+    private fun isDatabaseValid(file: File): Boolean {
         if (!file.exists()) {
             return false
         }
@@ -252,7 +254,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
 
     fun getSalonSearches(search:String):List<Salon>{
         val results = mutableListOf<Salon>()
-        val db: SQLiteDatabase = this.readableDatabase;
+        val db: SQLiteDatabase = this.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM salon WHERE nombre LIKE '%$search%' AND tipo !=" +
                 " 'vacio' ORDER BY tipo", null)
         if (cursor.moveToFirst()){
@@ -266,12 +268,13 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
                 results.add(Salon(salonid, nombre, descripcion, tipo, piso, edificio_edificioid))
             }while (cursor.moveToNext())
         }
+        cursor.close()
         return results
     }
 
     fun getCustomParametersSalon(id:String):List<Parametros>{
         val results = mutableListOf<Parametros>()
-        val db: SQLiteDatabase = this.readableDatabase;
+        val db: SQLiteDatabase = this.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM parametros WHERE par_salonid = $id", null)
         if (cursor.moveToFirst()){
             do {
@@ -283,6 +286,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
                 results.add(Parametros(par_salonid,v1, v2, v3, v4))
             }while (cursor.moveToNext())
         }
+        cursor.close()
         return results
     }
 
@@ -361,13 +365,13 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
             .build()
 
         val request = Request.Builder()
-            .url("$REMOTE_DATABASE_URL")
+            .url(REMOTE_DATABASE_URL)
             .header("User-Agent", "CUCSURMapApp-${context.getString(R.string.app_version)} ${Build.MANUFACTURER}:${Build.MODEL}")
             .build()
 
         try{
             client.newCall(request).enqueue(object : okhttp3.Callback {
-                override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                override fun onFailure(call: okhttp3.Call, e: IOException) {
                     e.printStackTrace()
                     latch.countDown()
                     if(sharedViewModel.dbLoaded.value != true){
@@ -390,8 +394,10 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
                         val parentDir = file.parentFile
 
                         // Ensure the directory exists
-                        if (!parentDir.exists()) {
-                            parentDir.mkdirs() // Create directories if not exist
+                        if (parentDir != null) {
+                            if (!parentDir.exists()) {
+                                parentDir.mkdirs() // Create directories if not exist
+                            }
                         }
 
                         val inputStream: InputStream = body.byteStream()
@@ -425,7 +431,6 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         if (cursor.moveToFirst()) {
             do {
                 val version = cursor.getString(cursor.getColumnIndexOrThrow("version"))
-                val date = cursor.getString(cursor.getColumnIndexOrThrow("date"))
                 info.add("Current DB Version: $version")
 
             } while (cursor.moveToNext())
@@ -436,7 +441,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         return info
     }
 
-    fun isLocalHigherVersion(context: Context): Boolean {
+    private fun isLocalHigherVersion(context: Context): Boolean {
         val assetVersion = getDatabaseVersionFromAssets(context)
         val currentVersion = getCurrentDatabaseVersion()
 
