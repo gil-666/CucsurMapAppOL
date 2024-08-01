@@ -187,6 +187,7 @@ class FeedbackDialogFragment(private val context: Context) : DialogFragment() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
+                Log.d("Feedback", "Upload success: $response")
             } else {
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(context,"Error al enviar comentarios: ${response?.split("(port")?.get(0)}",Toast.LENGTH_SHORT).show()

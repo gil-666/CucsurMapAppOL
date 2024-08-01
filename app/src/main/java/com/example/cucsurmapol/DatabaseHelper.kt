@@ -131,6 +131,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
 
     data class Edificio(val id: Int, val nombre: String, val tipo: String, val pisos: String, val lat: String, val lon: String, val image: String, val v1: String,val v2: String,val v3: String, val v4:String)
     data class Salon(val salonid: Int, val nombre: String, val descripcion:String, val tipo: String, val piso:String, val edificio_edificioid:Int)
+    data class Parametros(val par_salonid:Int, val v1:String, val v2:String, val v3: String, val v4: String)
     fun getAllEdificios(): List<Edificio> {
         val edificios = mutableListOf<Edificio>()
         val db: SQLiteDatabase = this.readableDatabase
@@ -263,6 +264,23 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
                 val piso = cursor.getString(cursor.getColumnIndexOrThrow("piso"))
                 val edificio_edificioid = cursor.getInt(cursor.getColumnIndexOrThrow("edificio_edificioid"))
                 results.add(Salon(salonid, nombre, descripcion, tipo, piso, edificio_edificioid))
+            }while (cursor.moveToNext())
+        }
+        return results
+    }
+
+    fun getCustomParametersSalon(id:String):List<Parametros>{
+        val results = mutableListOf<Parametros>()
+        val db: SQLiteDatabase = this.readableDatabase;
+        val cursor = db.rawQuery("SELECT * FROM parametros WHERE par_salonid = $id", null)
+        if (cursor.moveToFirst()){
+            do {
+                val par_salonid = cursor.getInt(cursor.getColumnIndexOrThrow("par_salonid"))
+                val v1 = cursor.getString(cursor.getColumnIndexOrThrow("v1"))
+                val v2 = cursor.getString(cursor.getColumnIndexOrThrow("v2"))
+                val v3 = cursor.getString(cursor.getColumnIndexOrThrow("v3"))
+                val v4 = cursor.getString(cursor.getColumnIndexOrThrow("v4"))
+                results.add(Parametros(par_salonid,v1, v2, v3, v4))
             }while (cursor.moveToNext())
         }
         return results

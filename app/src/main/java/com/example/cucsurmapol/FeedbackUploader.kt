@@ -13,7 +13,7 @@ class FeedbackUploader {
 
     fun uploadFeedback(zipFile: File, serverUrl: String, callback: (Boolean, String?) -> Unit) {
         val client = OkHttpClient.Builder()
-            .connectTimeout(3000, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .connectTimeout(7000, java.util.concurrent.TimeUnit.MILLISECONDS)
             .build()
         // Create a RequestBody for the file
         val requestFile = zipFile.asRequestBody("application/zip".toMediaTypeOrNull())
@@ -32,7 +32,7 @@ class FeedbackUploader {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 callback(false, e.message)
-                Log.i("imgay","fuck")
+                Log.i("FAIL","failure")
             }
 
             override fun onResponse(call: Call, response: Response) {

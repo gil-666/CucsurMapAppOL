@@ -161,6 +161,23 @@ class WebAppInterface(private val context: Context,private val navController: Na
     }
 
     @JavascriptInterface
+    fun getCustomParametersSalon(id:String):String{
+        val salones = dbHelper.getCustomParametersSalon(id)
+        val jsonArray = JSONArray()
+        for (salon in salones) {
+            val jsonObject = JSONObject()
+            jsonObject.put("par_salonid", salon.par_salonid)
+            jsonObject.put("v1", salon.v1)
+            jsonObject.put("v2", salon.v2)
+            jsonObject.put("v3", salon.v3)
+            jsonObject.put("v4", salon.v4)
+            jsonArray.put(jsonObject)
+        }
+        Log.println(Log.INFO,"get custom parameters", jsonArray.toString())
+        return jsonArray.toString()
+    }
+
+    @JavascriptInterface
     fun getSalonid(): String {
         Log.println(Log.INFO,"got salonid: ",sharedViewModel.info.value ?: "")
         return sharedViewModel.info.value ?: ""

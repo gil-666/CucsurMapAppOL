@@ -153,7 +153,7 @@
             searchBar.addEventListener("click", function (event) {
                 handleSearch("");
                 event.target.value = "";
-                searchBoxOpen= true;
+                searchBoxOpen = true;
             });
             if (Android.getSalonid() != "") {
                 travelToSalon(getSalonFeaturefromID(Android.getSalonid()));
@@ -225,7 +225,7 @@
                 }
             });
         }
-        
+
         function highlightSalon(room) {
             var currentHiddenRoomStyle = room.getStyle();
             console.log("original style: ", JSON.stringify(currentHiddenRoomStyle, null, 2));
@@ -238,7 +238,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(0, 0, 255, 0.8)'
                 }),
-                text: createDynamicTextStyle(room.get('nombre'),14)
+                text: createDynamicTextStyle(room.get('nombre'), 14)
             });
 
             room.setStyle(roomHighlight);
@@ -316,20 +316,47 @@
                 }
             }
             var width = maxX - minX;
-            var roomWidth = width / Object.keys(viewableRooms).length;
+            var filteredViewableRooms = viewableRooms.filter(room => {
+                var customParams = JSON.parse(Android.getCustomParametersSalon(room.salonid));
+                return !(customParams && customParams.length > 0);
+            });
+
+            var roomWidth = width / Object.keys(filteredViewableRooms).length;
+            console.log("filtered length "+filteredViewableRooms.length);
 
 
             for (var i = 0; i < Object.keys(viewableRooms).length; i++) {
-                var roomMinX = minX - i * roomWidth + width;
-                var roomMaxX = roomMinX - roomWidth;
+                var customParams = JSON.parse(Android.getCustomParametersSalon(viewableRooms[i].salonid));
 
-                var roomCoords = [
-                    [roomMinX, minY],
-                    [roomMaxX, minY],
-                    [roomMaxX, maxY],
-                    [roomMinX, maxY],
-                    [roomMinX, minY]
-                ];
+                var roomCoords;
+                if (customParams && customParams.length > 0) {
+                    var customCoords = customParams[0];
+
+                    if (customCoords.v1 && customCoords.v2 && customCoords.v3 && customCoords.v4) {
+                        console.log("salon " + viewableRooms[i].nombre + " has custom params");
+                        var customV1 = ol.proj.fromLonLat(customCoords.v1.split(',').map(Number));
+                        var customV2 = ol.proj.fromLonLat(customCoords.v2.split(',').map(Number));
+                        var customV3 = ol.proj.fromLonLat(customCoords.v3.split(',').map(Number));
+                        var customV4 = ol.proj.fromLonLat(customCoords.v4.split(',').map(Number));
+                        roomCoords = [
+                            customV1,
+                            customV2,
+                            customV3,
+                            customV4
+                        ];
+                    }
+                } else {
+                    var index = filteredViewableRooms.findIndex(room => room.salonid === viewableRooms[i].salonid);
+                    var roomMinX = minX - index * roomWidth + width;
+                    var roomMaxX = roomMinX - roomWidth;
+                    roomCoords = [
+                        [roomMinX, minY],
+                        [roomMaxX, minY],
+                        [roomMaxX, maxY],
+                        [roomMinX, maxY],
+                        [roomMinX, minY]
+                    ];
+                }
 
                 var roomPolygon = new ol.geom.Polygon([roomCoords]);
                 var roomFeature = new ol.Feature({
@@ -396,7 +423,7 @@
             return lines;
         }
 
-        function createDynamicTextStyle(text,fontSize) {
+        function createDynamicTextStyle(text, fontSize) {
             const maxLineLength = 9; // Maximum number of characters per line
             const maxLines = 3; // Maximum number of lines before truncation
             var baseFontSize = fontSize; // Base font size
@@ -438,7 +465,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(0, 255, 0, 0.1)'
                 }),
-                text: createDynamicTextStyle(feature.get('nombre'),16),
+                text: createDynamicTextStyle(feature.get('nombre'), 16),
             });
         }
 
@@ -451,7 +478,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(255, 0, 255, 0.1)'
                 }),
-                text: createDynamicTextStyle(feature.get('nombre'),14)
+                text: createDynamicTextStyle(feature.get('nombre'), 14)
             });
         }
 
@@ -477,7 +504,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(0, 0, 255, 0.5)'
                 }),
-                text: createDynamicTextStyle(feature.get('nombre'),18)
+                text: createDynamicTextStyle(feature.get('nombre'), 18)
             });
         }
 
@@ -616,11 +643,11 @@
         }
 
         map.on('click', function (event) {
-            if(searchBoxOpen){
+            if (searchBoxOpen) {
                 document.getElementById("resultBox").style.display = "none";
                 searchBoxOpen = false;
             }
-            
+
             var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
                 return feature;
             }, {
