@@ -36,6 +36,27 @@
 
     </div>
     <script>
+        //VALUES
+        let isEdificiosLoaded = false;
+        var initialZoom = 18.31;
+        var roomTriggerZoom = 19;
+        var roomVectorSource = null;
+        var roomLayer = null;
+        var rooms = [];
+        var edificios = [];
+        var arrowControlSource = new ol.source.Vector();
+        var arrowLayer = new ol.layer.Vector({
+            source: arrowControlSource
+        });
+
+        var currentHiddenFeature = null;
+        var edificioVerticeLayer = null;
+
+        var currentClickedFeature = [];
+
+        //SHAPES GO HERE
+
+        var selectedFloor = 1 //SELECTED FLOOR VALUE
 
         var bounds = ol.proj.transformExtent(
             [-104.35944, 19.772676, -104.357180, 19.77638],  // [minx, miny, maxx, maxy] EPSG:4326 
@@ -52,7 +73,7 @@
             ],
             view: new ol.View({
                 center: ol.proj.fromLonLat([-104.35848, 19.77473]),
-                zoom: 18.31,
+                zoom: initialZoom,
                 extent: bounds
             })
         });
@@ -139,30 +160,6 @@
         map.addLayer(vectorLayer);
         map.addLayer(GPSLayer);
 
-        //VALUES
-        let isEdificiosLoaded = false;
-        var roomTriggerZoom = 19;
-        var roomVectorSource = null;
-        var roomLayer = null;
-        var rooms = [];
-        var edificios = [];
-        var arrowControlSource = new ol.source.Vector();
-        var arrowLayer = new ol.layer.Vector({
-            source: arrowControlSource
-        });
-
-        var currentHiddenFeature = null;
-        var edificioVerticeLayer = null;
-
-        var currentClickedFeature = [];
-
-
-        // Add geolocation features to the vector source
-
-        //SHAPES GO HERE
-
-        var selectedFloor = 1 //SELECTED FLOOR VALUE
-
         function addEdificio(lon, lat, nombre, image, id, pisos, v1, v2, v3, v4, tipo) {
             try {
 
@@ -246,7 +243,8 @@
             const resultBox = document.getElementById("resultBox");
             const resultList = document.getElementById("resultListinMap");
             resultBox.style.display = 'block';
-            var results = JSON.parse(Android.getSalonSearch(searchTerm));
+            var results = JSON.parse(Android.getEdificioSearch(searchTerm));
+            results.push(...JSON.parse(Android.getSalonSearch(searchTerm)));
             console.log("Search results: ", results);
             // document.getElementById("result-text").textContent = results[0].nombre
             resultList.innerHTML = '';
@@ -256,14 +254,37 @@
                 item.textContent = result.nombre;
                 resultList.appendChild(item);
 
-                item.addEventListener("click", function (event) { //attaches a click event for every item
-                    console.log("click! ", result.nombre);
-                    resultBox.style.display = 'none';
-                    travelToSalon(result);
+                if (result.tipo != "edificio") {
+                    item.addEventListener("click", function (event) { //attaches a click event for every item
+                        console.log("click! ", result.nombre);
+                        resultBox.style.display = 'none';
+                        travelToSalon(result);
 
-                });
+                    });
+                } else {
+                    item.addEventListener("click", function (event) { //attaches a click event for every item
+                        map.removeLayer(edificioVerticeLayer)//deletes previous building borders before creating new ones
+                        console.log("click! ed ", result.nombre);
+                        resultBox.style.display = 'none';
+                        travelToEdificio(result);
+                        
+                    });
+                }
+
             });
         };
+
+        function travelToEdificio(edificio) {
+            console.log("traveling to id ", edificio.id);
+            edificios.forEach(function (ed) {
+                if (edificio.id == ed.get('id')) {
+                    console.log("match!");
+                    zoomToRoom(ed, initialZoom, 1500);
+                    showBuildingBorders(ed);
+                    showPopup(ed);
+                }
+            });
+        }
 
         function travelToSalon(salon) {
             var view = map.getView();
@@ -310,7 +331,7 @@
         function highlightSalon(room) {
             var currentHiddenRoomStyle = room.getStyle();
             console.log("original style: ", JSON.stringify(currentHiddenRoomStyle, null, 2));
-
+            var textStyle = Array.isArray(room.getStyle()) ? room.getStyle()[0].getText() : room.getStyle().getText();
             var roomHighlight = new ol.style.Style({
                 stroke: new ol.style.Stroke({
                     color: 'blue',
@@ -319,7 +340,7 @@
                 fill: new ol.style.Fill({
                     color: 'rgba(0, 0, 255, 0.8)'
                 }),
-                text: null
+                text: textStyle
             });
 
             room.setStyle(roomHighlight);
@@ -669,8 +690,21 @@
             arrowLayer.setVisible(0);
         }
 
-        function showBuildingBorders(edificio) {
+        function showBuildingBorders(edificioFeature) {
             //VERTICE COORDINATES
+            
+            var edificio = {
+                    id: edificioFeature.get('id'),
+                    nombre: edificioFeature.get('nombre'),
+                    pisos: edificioFeature.get('pisos'),
+                    v1: edificioFeature.get('v1').split(',').map(Number),
+                    v2: edificioFeature.get('v2').split(',').map(Number),
+                    v3: edificioFeature.get('v3').split(',').map(Number),
+                    v4: edificioFeature.get('v4').split(',').map(Number),
+                    tipo: edificioFeature.get('tipo'),
+                    geometry: edificioFeature.getGeometry()
+                };
+
             var vcoor = [
                 ol.proj.fromLonLat(edificio.v1),
                 ol.proj.fromLonLat(edificio.v2),
@@ -743,26 +777,14 @@
 
             if (feature && feature.get('id')) {
 
-                var edificio = {
-                    id: feature.get('id'),
-                    nombre: feature.get('nombre'),
-                    pisos: feature.get('pisos'),
-                    v1: feature.get('v1').split(',').map(Number),
-                    v2: feature.get('v2').split(',').map(Number),
-                    v3: feature.get('v3').split(',').map(Number),
-                    v4: feature.get('v4').split(',').map(Number),
-                    tipo: feature.get('tipo'),
-                    geometry: feature.getGeometry()
-                };
+                
                 hideFeature(feature);
 
                 currentHiddenFeature = feature;
                 var info = feature.get('id');
-                alert(info);
+                // alert(info);
                 showPopup(feature);
-                showBuildingBorders(edificio);
-
-
+                showBuildingBorders(feature);
 
             }
             else if (feature && feature.get('salonid') && feature.get('tipo') != "vacio") {//if the feature clicked is a salon
@@ -845,8 +867,8 @@
         }
 
         function zoomToRoom(room, zoomLevel, animDurationMs) {
-            var ext = room.getGeometry().getExtent();
             console.log("requested zoom for room: ", room.get('nombre'));
+            var ext = room.getGeometry().getExtent();
             var center = ol.extent.getCenter(ext);
             var view = map.getView();
             view.animate({
@@ -858,9 +880,14 @@
             });
 
 
+            if (room.get('tipo') != "edificio") {
+                roomLayer.setVisible(1); //force rooms to show on zoom
+                vectorLayer.setVisible(0);
+            }else{
+                roomLayer.setVisible(0); 
+                vectorLayer.setVisible(1);
+            }
 
-            roomLayer.setVisible(1); //force rooms to show on zoom
-            vectorLayer.setVisible(0);
         }
 
         function getEdificioFeaturefromID(salonid) {
@@ -889,32 +916,6 @@
         }
 
     </script>
-    <style>
-        .ol-popup {
-            position: absolute;
-            background-color: white;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            top: 10px;
-            max-width: 450px;
-            /* Limit maximum width */
-        }
-
-        .ol-popup-closer {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            cursor: pointer;
-        }
-
-        #popup-content {
-            max-height: 250px;
-            /* Limit maximum height if necessary */
-            text-align: center;
-        }
-    </style>
 
     <div id="popup" class="ol-popup">
         <script>
@@ -944,7 +945,7 @@
                 }
 
                 document.getElementById('view-details-btn').onclick = function () {
-                    alert('View Details clicked for ' + feature.get('nombre'));
+                    // alert('View Details clicked for ' + feature.get('nombre'));
                     hidePopup();
                     map.removeLayer(edificioVerticeLayer);
 

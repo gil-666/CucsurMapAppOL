@@ -256,7 +256,7 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         val results = mutableListOf<Salon>()
         val db: SQLiteDatabase = this.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM salon WHERE nombre LIKE '%$search%' AND tipo !=" +
-                " 'vacio' ORDER BY tipo", null)
+                " 'vacio' AND tipo != 'sanitario' ORDER BY tipo", null)
         if (cursor.moveToFirst()){
             do {
                 val salonid = cursor.getInt(cursor.getColumnIndexOrThrow("salonid"))
@@ -270,6 +270,34 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         }
         cursor.close()
         return results
+    }
+
+    fun getEdificioSearches(id:String):List<Edificio> {
+        val edificios = mutableListOf<Edificio>()
+        val db: SQLiteDatabase = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM edificio", null)
+        if (cursor.moveToFirst()) {
+            do {
+                val id = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
+                val nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                val tipo = cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
+                val pisos = cursor.getString(cursor.getColumnIndexOrThrow("pisos"))
+                val lat = cursor.getString(cursor.getColumnIndexOrThrow("lat"))
+                val lon = cursor.getString(cursor.getColumnIndexOrThrow("lon"))
+                val imageData = cursor.getBlob(cursor.getColumnIndexOrThrow("icon"))
+                val imageData64 =  Base64.getEncoder().encodeToString(imageData)
+
+                //VERTICE DATA
+                val v1 = cursor.getString(cursor.getColumnIndexOrThrow("v1"))
+                val v2 = cursor.getString(cursor.getColumnIndexOrThrow("v2"))
+                val v3 = cursor.getString(cursor.getColumnIndexOrThrow("v3"))
+                val v4 = cursor.getString(cursor.getColumnIndexOrThrow("v4"))
+                edificios.add(Edificio(id, nombre, tipo, pisos, lat, lon, imageData64, v1, v2, v3, v4))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return edificios
     }
 
     fun getCustomParametersSalon(id:String):List<Parametros>{

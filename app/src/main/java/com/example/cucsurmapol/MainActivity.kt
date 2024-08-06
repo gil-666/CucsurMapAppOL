@@ -175,10 +175,9 @@ class MainActivity : AppCompatActivity() {
                 put("longitude", longitude)
             }
 
-            // Example of sending data to a WebView's JavaScript context
+            // method to js
             WebView.evaluateJavascript("updateLocation($json)", null)
 
-            // Or use a different method to send data to your OpenLayers map
         }
     }
 }

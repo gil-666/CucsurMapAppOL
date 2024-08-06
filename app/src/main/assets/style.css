@@ -190,3 +190,28 @@ body {
     align-self: center;
     align-content: center;
 }
+
+.ol-popup {
+    position: absolute;
+    background-color: white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    top: 10px;
+    max-width: fit-content;
+    /* Limit maximum width */
+}
+
+.ol-popup-closer {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+}
+
+#popup-content {
+    max-height:fit-content;
+    /* Limit maximum height if necessary */
+    text-align: center;
+}

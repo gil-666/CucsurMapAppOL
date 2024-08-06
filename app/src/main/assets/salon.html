@@ -22,66 +22,67 @@
             var div1 = document.getElementById("sal-grid");
             var info = Android.getSalonid();
             var salon = JSON.parse(Android.getSalon(info));
-            salon.forEach(function (sal) {
-                var item = document.createElement("div");
-                item.className = 'col li-item';
-                item.id = 'edificioItem';
+            var sal = salon[0]
+            resetInfo() //to avoid zooming when not told to
+            var item = document.createElement("div");
+            item.className = 'col li-item';
+            item.id = 'edificioItem';
 
-                var title = document.createElement("div");
-                title.textContent = sal.nombre;
-                title.className = "item-title";
+            var title = document.createElement("div");
+            title.textContent = sal.nombre;
+            title.className = "item-title";
 
-                var details = document.createElement("div");
-                details.className = 'item-details'
+            var details = document.createElement("div");
+            details.className = 'item-details'
 
-                var tipo = document.createElement("p");
-                if (sal.tipo == "salon") {
-                    tipo.innerHTML = "<strong>Tipo:</strong><br> " + salonDescriptor;
-                }
-                else if (sal.tipo == "oficina") {
-                    tipo.innerHTML = "<strong>Tipo:</strong><br> " + oficinaDescriptor;
-                }
-                else if (sal.tipo == "sanitario") {
-                    tipo.innerHTML = "<strong>Tipo:</strong><br> " + sanitarioDescriptor;
-                } else {
-                    tipo.innerHTML = "<strong>Tipo:</strong><br> " + sal.tipo;
-                }
-                details.appendChild(tipo);
+            var tipo = document.createElement("p");
+            if (sal.tipo == "salon") {
+                tipo.innerHTML = "<strong>Tipo:</strong><br> " + salonDescriptor;
+            }
+            else if (sal.tipo == "oficina") {
+                tipo.innerHTML = "<strong>Tipo:</strong><br> " + oficinaDescriptor;
+            }
+            else if (sal.tipo == "sanitario") {
+                tipo.innerHTML = "<strong>Tipo:</strong><br> " + sanitarioDescriptor;
+            } else {
+                tipo.innerHTML = "<strong>Tipo:</strong><br> " + sal.tipo;
+            }
+            details.appendChild(tipo);
 
-                var descripcion = document.createElement("p");
-                descripcion.innerHTML = "<strong>Descripción:</strong><br>" + sal.descripcion;
-                if(sal.descripcion != ""){
-                    details.appendChild(descripcion);
-                }
-                
-                var button = document.createElement("div");
-                button.className = "btn btn-success map-locate-btn"
-                button.textContent = "Ubicar en el mapa";
-                button.addEventListener("click", function(event){
-                    navToSalon(sal.salonid)
-                });
+            var descripcion = document.createElement("p");
+            descripcion.innerHTML = "<strong>Descripción:</strong><br>" + sal.descripcion;
+            if (sal.descripcion != "") {
+                details.appendChild(descripcion);
+            }
 
-                item.appendChild(title);
-                item.appendChild(details);
-                item.appendChild(button);
-                div1.appendChild(item);
-                
-
+            var button = document.createElement("div");
+            button.className = "btn btn-success map-locate-btn"
+            button.textContent = "Ubicar en el mapa";
+            button.addEventListener("click", function (event) {
+                navToSalon(sal.salonid)
             });
-            var div2 = document.createElement("div");
-            // div2.textContent = "navegaste a id:" + info;
-            div1.appendChild(div2);
+
+            item.appendChild(title);
+            item.appendChild(details);
+            item.appendChild(button);
+            div1.appendChild(item);
+
+
         });
+        var div2 = document.createElement("div");
+        // div2.textContent = "navegaste a id:" + info;
+        div1.appendChild(div2);
+
         function resetInfo() {
-            if(Android.getSalonid() != ""){
+            if (Android.getSalonid() != "") {
                 document.getElementById("back-button").href = "info.html";
             }
             Android.setSalonid("");
-            
+
         }
-        function navToSalon(id){
+        function navToSalon(id) {
             Android.navToMapSalon(id);
-            
+
         }
 
     </script>
@@ -93,11 +94,11 @@
         <div id="sal-grid">
             <div class="row text-center" id="salon">
 
-                
+
             </div>
-            
+
         </div>
-        
+
     </div>
 
 </body>
