@@ -13,12 +13,12 @@
 <body>
     <script>
         document.addEventListener('DOMContentLoaded', (event) => {
-            addSalonesFromAndroid();
-            document.getElementById("header-title").textContent = JSON.parse(Android.getEdificio(Android.getEdificioid()))[0].nombre;
+            addSalonesFromApp();
+            document.getElementById("header-title").textContent = JSON.parse(App.getEdificio(App.getEdificioid()))[0].nombre;
         });
         document.addEventListener('DOMContentLoaded', function () {
             // var div1 = document.getElementById("ed-grid");
-            // var info = Android.getSalonid();
+            // var info = App.getSalonid();
 
             // if (info) {
             //     // If info is not empty or null, redirect to salon.html
@@ -30,9 +30,9 @@
             //     div1.appendChild(div2);
             // }
         });
-        function addSalonesFromAndroid() {
+        function addSalonesFromApp() {
             var list = document.getElementById("edificioList");
-            var salones = JSON.parse(Android.getEdificioSalones(Android.getEdificioid()));
+            var salones = JSON.parse(App.getEdificioSalones(App.getEdificioid()));
             salones.forEach(function (sal) {
                 if (sal.tipo != "vacio") {
                     var link = document.createElement("a");
@@ -66,7 +66,7 @@
                     link.appendChild(item);
                     list.appendChild(link);
                     link.addEventListener("click", function (event) {
-                        Android.setSalonid(sal.salonid);
+                        App.setSalonid(sal.salonid);
                     });
                 }
 
@@ -78,8 +78,8 @@
         }
 
         function resetInfo() {
-            Android.setSalonid("");
-            Android.setEdificioid("");
+            App.setSalonid("");
+            App.setEdificioid("");
         }
     </script>
     <div class="container">

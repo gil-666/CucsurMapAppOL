@@ -50,7 +50,7 @@ class DashboardFragment : Fragment() {
 
         val sharedViewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
         sharedViewModel.dbLoaded.postValue(true)
-        mapWebView.addJavascriptInterface(WebAppInterface(requireContext(),navController,sharedViewModel,parentFragmentManager), "Android")
+        mapWebView.addJavascriptInterface(WebAppInterface(requireContext(),navController,sharedViewModel,parentFragmentManager), "App")
         mapWebView.loadUrl(infourl)
         return root
     }

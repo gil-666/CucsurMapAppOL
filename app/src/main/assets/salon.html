@@ -20,8 +20,8 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             var div1 = document.getElementById("sal-grid");
-            var info = Android.getSalonid();
-            var salon = JSON.parse(Android.getSalon(info));
+            var info = App.getSalonid();
+            var salon = JSON.parse(App.getSalon(info));
             var sal = salon[0]
             resetInfo() //to avoid zooming when not told to
             var item = document.createElement("div");
@@ -74,14 +74,14 @@
         div1.appendChild(div2);
 
         function resetInfo() {
-            if (Android.getSalonid() != "") {
+            if (App.getSalonid() != "") {
                 document.getElementById("back-button").href = "info.html";
             }
-            Android.setSalonid("");
+            App.setSalonid("");
 
         }
         function navToSalon(id) {
-            Android.navToMapSalon(id);
+            App.navToMapSalon(id);
 
         }
 

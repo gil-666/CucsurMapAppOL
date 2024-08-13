@@ -163,7 +163,7 @@
         function addEdificio(lon, lat, nombre, image, id, pisos, v1, v2, v3, v4, tipo) {
             try {
 
-                var salones = JSON.parse(Android.getEdificioSalones(id));
+                var salones = JSON.parse(App.getEdificioSalones(id));
                 var edificio = new ol.Feature({
                     geometry: new ol.geom.Point(ol.proj.fromLonLat([lat, lon])),
                     nombre: nombre,
@@ -202,12 +202,12 @@
             }
         }
 
-        function addEdificiosFromAndroid() {
+        function addEdificiosFromApp() {
             if (isEdificiosLoaded) {
                 console.log("Edificios already loaded, skipping");
                 return;
             }
-            var edificios = JSON.parse(Android.getEdificios());
+            var edificios = JSON.parse(App.getEdificios());
             edificios.forEach(function (edificio) {
                 addEdificio(edificio.lon, edificio.lat, edificio.nombre, edificio.image, edificio.id, edificio.pisos, edificio.v1, edificio.v2, edificio.v3, edificio.v4, edificio.tipo);
             });
@@ -215,9 +215,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', (event) => { //waits for map content then loads data
-            addEdificiosFromAndroid();
-
+            addEdificiosFromApp();
         });
+
         var searchBoxOpen = false;
         document.addEventListener("DOMContentLoaded", function () { //Listens for typing in search bar
             const searchBar = document.getElementById("searchQueryInput");
@@ -233,8 +233,8 @@
                 event.target.value = "";
                 searchBoxOpen = true;
             });
-            if (Android.getSalonid() != "") {
-                travelToSalon(getSalonFeaturefromID(Android.getSalonid()));
+            if (App.getSalonid() != "") {
+                travelToSalon(getSalonFeaturefromID(App.getSalonid()));
             }
         });
 
@@ -243,8 +243,8 @@
             const resultBox = document.getElementById("resultBox");
             const resultList = document.getElementById("resultListinMap");
             resultBox.style.display = 'block';
-            var results = JSON.parse(Android.getEdificioSearch(searchTerm));
-            results.push(...JSON.parse(Android.getSalonSearch(searchTerm)));
+            var results = JSON.parse(App.getEdificioSearch(searchTerm));
+            results.push(...JSON.parse(App.getSalonSearch(searchTerm)));
             console.log("Search results: ", results);
             // document.getElementById("result-text").textContent = results[0].nombre
             resultList.innerHTML = '';
@@ -419,7 +419,7 @@
             }
             var width = maxX - minX;
             var filteredViewableRooms = viewableRooms.filter(room => {
-                var customParams = JSON.parse(Android.getCustomParametersSalon(room.salonid));
+                var customParams = JSON.parse(App.getCustomParametersSalon(room.salonid));
                 return !(customParams && customParams.length > 0);
             });
 
@@ -428,7 +428,7 @@
 
 
             for (var i = 0; i < Object.keys(viewableRooms).length; i++) {
-                var customParams = JSON.parse(Android.getCustomParametersSalon(viewableRooms[i].salonid));
+                var customParams = JSON.parse(App.getCustomParametersSalon(viewableRooms[i].salonid));
 
                 var roomCoords;
                 if (customParams && customParams.length > 0) {
@@ -839,7 +839,7 @@
                     currentHiddenFeature = null;
                 }
                 map.removeLayer(edificioVerticeLayer);
-                Android.setSalonid("");
+                App.setSalonid("");
             };
         });
 
@@ -906,7 +906,7 @@
 
         function getSalonFeaturefromID(salonid) {
             var salonFound = undefined;
-            JSON.parse(Android.getSalon(salonid)).forEach(function (sal) {
+            JSON.parse(App.getSalon(salonid)).forEach(function (sal) {
                 if (salonid == sal.salonid) {
                     console.log("se encontro el salon en json: ", sal.salonid);
                     salonFound = sal;
@@ -949,8 +949,8 @@
                     hidePopup();
                     map.removeLayer(edificioVerticeLayer);
 
-                    if (typeof Android !== 'undefined' && Android.navToSalonInfo && feature.get('salonid')) {
-                        Android.navToSalonInfo(feature.get('salonid'));
+                    if (typeof App !== 'undefined' && App.navToSalonInfo && feature.get('salonid')) {
+                        App.navToSalonInfo(feature.get('salonid'));
                     }
                     var ext = feature.getGeometry().getExtent();
                     var center = ol.extent.getCenter(ext);

@@ -272,10 +272,10 @@ class DatabaseHelper(context: Context, private val sharedViewModel: SharedViewMo
         return results
     }
 
-    fun getEdificioSearches(id:String):List<Edificio> {
+    fun getEdificioSearches(search:String):List<Edificio> {
         val edificios = mutableListOf<Edificio>()
         val db: SQLiteDatabase = this.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM edificio", null)
+        val cursor = db.rawQuery("SELECT * FROM edificio WHERE nombre LIKE '$search%' OR nombre LIKE '% $search%'", null)
         if (cursor.moveToFirst()) {
             do {
                 val id = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
