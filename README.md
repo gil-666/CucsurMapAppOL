@@ -1,0 +1,1 @@
+Interactive map app for the University of Guadalajara South Coast Center, with the purpose of helping new students navigate around the campus, users can search a given classroom or office and view it’s location on campus.
